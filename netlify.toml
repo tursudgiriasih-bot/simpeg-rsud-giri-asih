@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# React Router butuh semua path di-serve lewat index.html (client-side routing).
+# Ini tidak akan "menyerobot" panggilan ke Netlify Function -- Netlify selalu
+# mengutamakan file/Function yang cocok sebelum menerapkan redirect ini.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

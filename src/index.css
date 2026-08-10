@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  --font-display: "Fraunces", "Georgia", serif;
+
+  --color-ink-900: #0f1e1e;
+  --color-ink-700: #23423f;
+  --color-ink-500: #4a635f;
+  --color-ink-300: #8ea39e;
+  --color-paper: #f4f6f5;
+  --color-paper-raised: #ffffff;
+
+  --color-teal-900: #0a3535;
+  --color-teal-700: #0d4f4f;
+  --color-teal-500: #146b6b;
+  --color-teal-300: #4f9494;
+  --color-teal-100: #dcece9;
+
+  --color-amber-700: #8a5a17;
+  --color-amber-500: #b7791f;
+  --color-amber-100: #f6e6c8;
+
+  --color-red-700: #7a1f1a;
+  --color-red-500: #b3261e;
+  --color-red-100: #f6dad8;
+
+  --color-green-700: #1f4d34;
+  --color-green-500: #2f6f4e;
+  --color-green-100: #dcece2;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background: var(--color-paper);
+    color: var(--color-ink-900);
+  }
+  ::selection {
+    background: var(--color-teal-100);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-mono-data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .status-rail {
+    border-left-width: 4px;
+  }
+  .card {
+    background: var(--color-paper-raised);
+    border: 1px solid #e3e9e7;
+    border-radius: 0.75rem;
+  }
+}

@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && myProfile().role == 'admin';
+    }
+
+    function isOwner(pegawaiId) {
+      return isSignedIn() && myProfile().pegawaiId == pegawaiId;
+    }
+
+    function sectionAllowsPegawaiWrite(sub) {
+      return get(/databases/$(database)/documents/sectionDefinitions/$(sub)).data.allowPegawaiAdd == true;
+    }
+
+    match /users/{uid} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'pending';
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /sectionDefinitions/{key} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /pegawai/{pegawaiId} {
+      allow read: if isAdmin() || isOwner(pegawaiId);
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (isOwner(pegawaiId) &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['alamat', 'noHp', 'email', 'fotoUrl', 'updatedAt']));
+
+      match /{sub}/{docId} {
+        allow read: if isAdmin() || isOwner(pegawaiId);
+        allow write: if isAdmin() ||
+          (isOwner(pegawaiId) && sectionAllowsPegawaiWrite(sub));
+      }
+    }
+
+    // Bacaan lintas-pegawai (collection group) khusus untuk Dashboard Admin & rekap
+    // (SIP/SPK/KGB akan berakhir, Belum memenuhi CPD, dll). Hanya Admin yang boleh.
+    match /{path=**}/sip/{docId} {
+      allow read: if isAdmin();
+    }
+    match /{path=**}/spk/{docId} {
+      allow read: if isAdmin();
+    }
+    match /{path=**}/kgb/{docId} {
+      allow read: if isAdmin();
+    }
+    match /{path=**}/riwayatPangkat/{docId} {
+      allow read: if isAdmin();
+    }
+    match /{path=**}/cpd/{docId} {
+      allow read: if isAdmin();
+    }
+    match /{path=**}/dokumenLain/{docId} {
+      allow read: if isAdmin();
+    }
+  }
+}

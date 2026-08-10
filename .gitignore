@@ -1,0 +1,7 @@
+node_modules
+dist
+.firebase
+.netlify
+serviceAccountKey.json
+.env
+.DS_Store
