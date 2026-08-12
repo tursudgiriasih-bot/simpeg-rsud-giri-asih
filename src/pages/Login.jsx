@@ -89,10 +89,10 @@ export default function Login() {
               src={gedungRsud}
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover opacity-[0.16] mix-blend-luminosity"
+              className="absolute inset-0 w-full h-full object-cover opacity-[0.32] mix-blend-luminosity"
               style={{
-                maskImage: "radial-gradient(ellipse 85% 75% at 30% 50%, black 35%, transparent 78%)",
-                WebkitMaskImage: "radial-gradient(ellipse 85% 75% at 30% 50%, black 35%, transparent 78%)",
+                maskImage: "radial-gradient(ellipse 90% 80% at 30% 50%, black 45%, transparent 88%)",
+                WebkitMaskImage: "radial-gradient(ellipse 90% 80% at 30% 50%, black 45%, transparent 88%)",
               }}
             />
             <div className="relative">
