@@ -9,6 +9,7 @@ import gedungRsud from "../assets/gedung-rsud.jpg";
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [mode, setMode] = useState("pegawai"); // "pegawai" | "admin" -- dipilih eksplisit, tidak ditebak dari isi input
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,18 +17,25 @@ export default function Login() {
   const [forgotMessage, setForgotMessage] = useState("");
   const [forgotBusy, setForgotBusy] = useState(false);
 
+  function switchMode(next) {
+    setMode(next);
+    setIdentifier("");
+    setError("");
+    setForgotMessage("");
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      // Admin login pakai email biasa. Pegawai login pakai NIP,
-      // yang di-mapping ke email internal saat akun dibuatkan admin/didaftarkan mandiri.
-      const email = identifier.includes("@") ? identifier : `${identifier}@pegawai.simpeg.internal`;
+      // Admin login pakai email asli. Pegawai login pakai NIP, yang di-mapping
+      // ke email internal saat akun dibuatkan admin/didaftarkan mandiri.
+      const email = mode === "admin" ? identifier.trim() : `${identifier.trim()}@pegawai.simpeg.internal`;
       await login(email, password);
       navigate("/");
     } catch {
-      setError("NIP/Email atau password salah. Silakan coba lagi.");
+      setError(mode === "admin" ? "Email atau password salah. Silakan coba lagi." : "NIP atau password salah. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }
@@ -38,11 +46,11 @@ export default function Login() {
     setForgotMessage("");
 
     if (!identifier.trim()) {
-      setForgotMessage("Isi dulu kolom NIP/Email di atas, baru klik \"Lupa password?\".");
+      setForgotMessage(mode === "admin" ? "Isi dulu kolom Email di atas, baru klik \"Lupa password?\"." : "Isi dulu kolom NIP di atas, baru klik \"Lupa password?\".");
       return;
     }
 
-    if (!identifier.includes("@")) {
+    if (mode !== "admin") {
       setForgotMessage(
         "Untuk akun Pegawai, reset password dilakukan oleh Admin TU Kepegawaian (bukan lewat email). Silakan hubungi Admin dan sebutkan NIP Anda."
       );
@@ -117,16 +125,40 @@ export default function Login() {
             </Link>
           </p>
 
+          <div className="flex mb-5 rounded-lg bg-[color:var(--color-paper)] p-1">
+            <button
+              type="button"
+              onClick={() => switchMode("pegawai")}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                mode === "pegawai" ? "bg-white text-[color:var(--color-teal-900)] shadow-sm" : "text-[color:var(--color-ink-500)]"
+              }`}
+            >
+              Saya Pegawai
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode("admin")}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                mode === "admin" ? "bg-white text-[color:var(--color-teal-900)] shadow-sm" : "text-[color:var(--color-ink-500)]"
+              }`}
+            >
+              Saya Admin
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1">NIP / Email</label>
+              <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1">
+                {mode === "admin" ? "Email" : "NIP"}
+              </label>
               <input
-                type="text"
+                type={mode === "admin" ? "email" : "text"}
+                inputMode={mode === "admin" ? "email" : "numeric"}
                 required
                 value={identifier}
                 onChange={(e) => { setIdentifier(e.target.value); setForgotMessage(""); }}
                 className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
-                placeholder="Masukkan NIP atau email admin"
+                placeholder={mode === "admin" ? "nama@email.com" : "Contoh: 198501012010011001"}
               />
             </div>
             <div>
