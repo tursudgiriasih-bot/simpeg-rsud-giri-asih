@@ -10,6 +10,18 @@ import { exportPdfTable } from "../utils/exportPdf";
 const currentYear = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => currentYear - 1 + i);
 
+// Field tanggal "pengingat" resmi per bagian sistem -- HARUS selalu sama dengan
+// yang dipakai Dashboard (lihat fetchDashboardData di utils/queries.js), supaya
+// angka di halaman ini selalu sinkron dengan Dashboard. Diprioritaskan di atas
+// data reminderThreshold yang tersimpan di Firestore, karena data lama yang
+// sudah pernah di-seed sebelumnya mungkin belum punya penanda itu.
+const SYSTEM_REMINDER_FIELDS = {
+  sip: "tanggalBerakhir",
+  spk: "tanggalBerakhir",
+  kgb: "tanggalBerakhir",
+  riwayatPangkat: "targetKenaikanBerikutnya",
+};
+
 export default function CekMasaBerlaku() {
   const [sections, setSections] = useState([]);
   const [sectionKey, setSectionKey] = useState("");
@@ -37,15 +49,19 @@ export default function CekMasaBerlaku() {
   const dateFields = useMemo(() => (activeSection?.fields || []).filter((f) => f.type === "date"), [activeSection]);
 
   useEffect(() => {
-    // Pilih otomatis kolom tanggal yang dipakai sistem pengingat (reminderThreshold),
-    // sama seperti logika di Dashboard -- BUKAN kolom tanggal pertama yang ada.
-    // Contoh: bagian KGB punya "TMT" (tanggal mulai, sudah lewat) dan
-    // "Tanggal Berakhir" (dipakai pengingat) -- yang benar dipilih adalah
-    // "Tanggal Berakhir", supaya hasilnya sinkron dengan angka di Dashboard.
+    // Pilih otomatis kolom tanggal yang dipakai sistem pengingat, sama seperti
+    // Dashboard -- BUKAN kolom tanggal pertama yang ada. Prioritas:
+    // 1) mapping tetap SYSTEM_REMINDER_FIELDS (selalu benar untuk bagian sistem)
+    // 2) field yang punya reminderThreshold di konfigurasi Firestore (bagian custom)
+    // 3) kolom tanggal pertama yang ada, sebagai jalan terakhir
     if (dateFields.length === 0) return;
-    const preferred = dateFields.find((f) => f.reminderThreshold) || dateFields[0];
+    const systemField = SYSTEM_REMINDER_FIELDS[sectionKey];
+    const preferred =
+      dateFields.find((f) => f.name === systemField) ||
+      dateFields.find((f) => f.reminderThreshold) ||
+      dateFields[0];
     setDateField(preferred.name);
-  }, [dateFields]);
+  }, [dateFields, sectionKey]);
 
   useEffect(() => {
     if (!sectionKey) return;
@@ -90,6 +106,17 @@ export default function CekMasaBerlaku() {
     return activeSection?.fields?.find((f) => f.name === name)?.label || name;
   }
 
+  // Menampilkan nilai kolom dengan aman -- kolom bertipe "date" WAJIB lewat
+  // formatDate() dulu, karena nilainya adalah objek Firestore Timestamp, bukan
+  // teks. Menampilkannya langsung (tanpa format) membuat React crash total
+  // (halaman jadi putih blank) begitu ada baris data yang cocok.
+  function displayValue(row, fieldName) {
+    const def = activeSection?.fields?.find((f) => f.name === fieldName);
+    if (def?.type === "date") return formatDate(row[fieldName]);
+    const v = row[fieldName];
+    return v === null || v === undefined || v === "" ? "-" : String(v);
+  }
+
   // Kolom ringkas tambahan (selain nama/NIP/tanggal) diambil dari kolom yang sudah
   // dikonfigurasi Admin untuk bagian ini, supaya relevan untuk bagian apa pun.
   const extraCols = (activeSection?.columns || []).filter((c) => c !== dateField).slice(0, 2);
@@ -97,7 +124,7 @@ export default function CekMasaBerlaku() {
   function handleExportExcel() {
     const data = filtered.map((r) => {
       const row = { Nama: r.pegawai?.nama, NIP: r.pegawai?.nip, Unit: r.pegawai?.unitKerja };
-      extraCols.forEach((c) => (row[labelFor(c)] = r[c]));
+      extraCols.forEach((c) => (row[labelFor(c)] = displayValue(r, c)));
       row[labelFor(dateField)] = formatDate(r[dateField]);
       row["Sisa Hari"] = r._days;
       return row;
@@ -111,7 +138,7 @@ export default function CekMasaBerlaku() {
       head: ["Nama", "NIP", "Unit", ...extraCols.map(labelFor), labelFor(dateField), "Sisa Hari"],
       body: filtered.map((r) => [
         r.pegawai?.nama, r.pegawai?.nip, r.pegawai?.unitKerja,
-        ...extraCols.map((c) => r[c] ?? "-"),
+        ...extraCols.map((c) => displayValue(r, c)),
         formatDate(r[dateField]),
         r._days,
       ]),
@@ -265,7 +292,7 @@ export default function CekMasaBerlaku() {
                       <div className="text-xs text-[color:var(--color-ink-500)] font-mono-data">{r.pegawai?.nip}</div>
                     </td>
                     {extraCols.map((c) => (
-                      <td key={c} className="px-4 py-3 text-[color:var(--color-ink-700)]">{r[c] ?? "-"}</td>
+                      <td key={c} className="px-4 py-3 text-[color:var(--color-ink-700)]">{displayValue(r, c)}</td>
                     ))}
                     <td className="px-4 py-3 text-[color:var(--color-ink-700)]">{formatDate(r[dateField])}</td>
                     <td className="px-4 py-3">
