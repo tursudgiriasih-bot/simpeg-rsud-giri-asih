@@ -37,10 +37,15 @@ export default function CekMasaBerlaku() {
   const dateFields = useMemo(() => (activeSection?.fields || []).filter((f) => f.type === "date"), [activeSection]);
 
   useEffect(() => {
-    if (dateFields.length > 0 && !dateFields.find((f) => f.name === dateField)) {
-      setDateField(dateFields[0].name);
-    }
-  }, [dateFields, dateField]);
+    // Pilih otomatis kolom tanggal yang dipakai sistem pengingat (reminderThreshold),
+    // sama seperti logika di Dashboard -- BUKAN kolom tanggal pertama yang ada.
+    // Contoh: bagian KGB punya "TMT" (tanggal mulai, sudah lewat) dan
+    // "Tanggal Berakhir" (dipakai pengingat) -- yang benar dipilih adalah
+    // "Tanggal Berakhir", supaya hasilnya sinkron dengan angka di Dashboard.
+    if (dateFields.length === 0) return;
+    const preferred = dateFields.find((f) => f.reminderThreshold) || dateFields[0];
+    setDateField(preferred.name);
+  }, [dateFields]);
 
   useEffect(() => {
     if (!sectionKey) return;
