@@ -73,12 +73,14 @@ export async function fetchDashboardData() {
 
   return {
     pegawaiList,
-    reminders90: {
-      sip: within(sip, 90),
-      spk: within(spk, 90),
-      kgb: within(kgb, 90),
-    },
-    reminders180: {
+    // Semua kategori sekarang pakai ambang 180 hari yang sama (sebelumnya
+    // SIP/SPK/KGB terpisah di 90 hari) -- setiap list ini sudah berisi
+    // GABUNGAN dokumen yang sudah lewat tenggat (_days negatif) MAUPUN yang
+    // akan berakhir dalam 180 hari ke depan, diurutkan dari paling mendesak.
+    reminders: {
+      sip: within(sip, 180),
+      spk: within(spk, 180),
+      kgb: within(kgb, 180),
       pangkat: within(pangkat, 180),
     },
     belumCpd,
