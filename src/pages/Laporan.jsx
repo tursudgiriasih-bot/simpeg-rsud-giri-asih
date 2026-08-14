@@ -35,27 +35,70 @@ export default function Laporan() {
     }));
   }
 
+  const GROUP_FIELD = { unit: "Unit Kerja", jabatan: "Jabatan", golongan: "Golongan" };
+
+  // Benar-benar mengelompokkan pegawai per Unit/Jabatan/Golongan (bukan cuma
+  // mengurutkan daftar yang sama seperti sebelumnya) -- setiap kelompok diberi
+  // baris judul "— <Nilai> (n pegawai) —" diikuti anggotanya, supaya isinya
+  // benar-benar sesuai judul laporan, dan baris kosong ("Tidak diketahui")
+  // dikumpulkan di kelompok tersendiri di bagian akhir.
+  function buildGroupedRows(field) {
+    const rows = buildRows();
+    const groups = new Map();
+    rows.forEach((r) => {
+      const key = r[field] && String(r[field]).trim() ? r[field] : "Tidak diketahui";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(r);
+    });
+    const groupNames = [...groups.keys()].sort((a, b) => {
+      if (a === "Tidak diketahui") return 1;
+      if (b === "Tidak diketahui") return -1;
+      return a.localeCompare(b);
+    });
+
+    const result = [];
+    const headerIndexes = new Set();
+    groupNames.forEach((name) => {
+      const members = groups.get(name);
+      headerIndexes.add(result.length);
+      result.push({
+        Nama: `— ${name} (${members.length} pegawai) —`,
+        NIP: "", Jabatan: "", "Unit Kerja": "", Pangkat: "", Golongan: "", "Status Pegawai": "",
+        _isGroupHeader: true,
+      });
+      members.forEach((m) => result.push(m));
+    });
+    return { rows: result, headerIndexes };
+  }
+
   function handleExportExcel(reportKey, label) {
-    let rows = buildRows();
-    if (reportKey !== "semua") {
-      // untuk laporan berkelompok, tetap ekspor daftar lengkap terurut berdasarkan grup
-      const field = reportKey === "unit" ? "Unit Kerja" : reportKey === "jabatan" ? "Jabatan" : "Golongan";
-      rows = [...rows].sort((a, b) => (a[field] || "").localeCompare(b[field] || ""));
+    if (reportKey === "semua") {
+      exportGenericExcel(buildRows(), label, `${reportKey}-pegawai.xlsx`);
+      return;
     }
-    exportGenericExcel(rows, label, `${reportKey}-pegawai.xlsx`);
+    const { rows } = buildGroupedRows(GROUP_FIELD[reportKey]);
+    exportGenericExcel(
+      rows.map(({ _isGroupHeader, ...r }) => r),
+      label,
+      `${reportKey}-pegawai.xlsx`
+    );
   }
 
   function handleExportPdf(reportKey, label) {
-    let rows = buildRows();
-    if (reportKey !== "semua") {
-      const field = reportKey === "unit" ? "Unit Kerja" : reportKey === "jabatan" ? "Jabatan" : "Golongan";
-      rows = [...rows].sort((a, b) => (a[field] || "").localeCompare(b[field] || ""));
+    const toBody = (rows) => rows.map((r) => [r.Nama, r.NIP, r.Jabatan, r["Unit Kerja"], r.Pangkat, r.Golongan, r["Status Pegawai"]]);
+    const head = ["Nama", "NIP", "Jabatan", "Unit Kerja", "Pangkat", "Golongan", "Status"];
+
+    if (reportKey === "semua") {
+      exportPdfTable({ title: label, head, body: toBody(buildRows()), filename: `${reportKey}-pegawai.pdf` });
+      return;
     }
+    const { rows, headerIndexes } = buildGroupedRows(GROUP_FIELD[reportKey]);
     exportPdfTable({
       title: label,
-      head: ["Nama", "NIP", "Jabatan", "Unit Kerja", "Pangkat", "Golongan", "Status"],
-      body: rows.map((r) => [r.Nama, r.NIP, r.Jabatan, r["Unit Kerja"], r.Pangkat, r.Golongan, r["Status Pegawai"]]),
+      head,
+      body: toBody(rows),
       filename: `${reportKey}-pegawai.pdf`,
+      groupHeaderIndexes: headerIndexes,
     });
   }
 
