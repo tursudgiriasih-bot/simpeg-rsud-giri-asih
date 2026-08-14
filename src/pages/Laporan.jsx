@@ -8,17 +8,37 @@ import { exportGenericExcel } from "../utils/exportExcel";
 import { exportPdfTable } from "../utils/exportPdf";
 import { SYSTEM_REMINDER_FIELDS } from "../utils/reminderFields";
 
-// 4 laporan kepatuhan dokumen yang benar-benar dipakai sehari-hari (menggantikan
-// laporan "Data Seluruh Pegawai / per Unit / per Jabatan / per Golongan" yang lama --
-// isinya dulu selalu sama karena cuma diurutkan ulang, bukan benar-benar berguna).
-// Setiap laporan berisi SEMUA dokumen yang sudah lewat tenggat ATAUPUN akan segera
-// berakhir, diurutkan dari yang paling mendesak, sinkron dengan angka di Dashboard.
-const REPORTS = [
-  { key: "sip", label: "SIP - Berakhir / Akan Berakhir" },
-  { key: "spk", label: "SPK - Berakhir / Akan Berakhir" },
-  { key: "kgb", label: "Kenaikan Gaji Berkala" },
-  { key: "riwayatPangkat", label: "Kenaikan Pangkat / Golongan" },
+// Ambang "akan berakhir" untuk halaman Laporan. Sengaja dipisah dari ambang
+// alert Dashboard (90 hari untuk SIP/SPK/KGB) karena laporan cetak butuh
+// jendela waktu yang lebih longgar supaya TU Kepegawaian bisa mengurus
+// perpanjangan jauh-jauh hari -- sesuai permintaan: "sebelum 180 hari".
+const THRESHOLD_DAYS = 180;
+
+const REPORT_SECTIONS = [
+  { sectionKey: "sip", title: "SIP" },
+  { sectionKey: "spk", title: "SPK" },
+  { sectionKey: "kgb", title: "Kenaikan Gaji Berkala" },
+  { sectionKey: "riwayatPangkat", title: "Kenaikan Pangkat / Golongan" },
 ];
+
+// Tiap bagian dipecah jadi 2 laporan terpisah -- "Sudah Kedaluwarsa" dan
+// "Akan Berakhir" -- bukan digabung jadi satu seperti sebelumnya, supaya
+// TU Kepegawaian bisa mencetak/mengirim daftar yang benar-benar berbeda
+// urgensinya secara terpisah.
+const REPORTS = REPORT_SECTIONS.flatMap(({ sectionKey, title }) => [
+  {
+    key: `${sectionKey}-expired`,
+    sectionKey,
+    label: `${title} — Sudah Kedaluwarsa`,
+    matches: (days) => days < 0,
+  },
+  {
+    key: `${sectionKey}-upcoming`,
+    sectionKey,
+    label: `${title} — Akan Berakhir (\u2264${THRESHOLD_DAYS} hari)`,
+    matches: (days) => days >= 0 && days <= THRESHOLD_DAYS,
+  },
+]);
 
 export default function Laporan() {
   const [sections, setSections] = useState([]);
@@ -29,22 +49,24 @@ export default function Laporan() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all(REPORTS.map((r) => fetchSectionAcrossPegawai(r.key))).then((results) => {
+    const sectionKeys = [...new Set(REPORT_SECTIONS.map((s) => s.sectionKey))];
+    Promise.all(sectionKeys.map((k) => fetchSectionAcrossPegawai(k))).then((results) => {
       if (cancelled) return;
       const map = {};
-      REPORTS.forEach((r, i) => { map[r.key] = results[i]; });
+      sectionKeys.forEach((k, i) => { map[k] = results[i]; });
       setDataBySection(map);
       setLoading(false);
     });
     return () => { cancelled = true; };
   }, []);
 
-  function rowsFor(sectionKey) {
-    const dateField = SYSTEM_REMINDER_FIELDS[sectionKey];
-    const raw = dataBySection[sectionKey] || [];
+  function rowsForReport(report) {
+    const dateField = SYSTEM_REMINDER_FIELDS[report.sectionKey];
+    const raw = dataBySection[report.sectionKey] || [];
     return raw
       .filter((r) => r[dateField])
       .map((r) => ({ ...r, _days: daysUntil(r[dateField]) }))
+      .filter((r) => report.matches(r._days))
       .sort((a, b) => a._days - b._days);
   }
 
@@ -77,32 +99,32 @@ export default function Laporan() {
     return `${days} hari lagi`;
   }
 
-  function handleExportExcel(reportKey, label) {
-    const rows = rowsFor(reportKey);
-    const dateField = SYSTEM_REMINDER_FIELDS[reportKey];
-    const extraCols = extraColsFor(reportKey);
+  function handleExportExcel(report) {
+    const rows = rowsForReport(report);
+    const dateField = SYSTEM_REMINDER_FIELDS[report.sectionKey];
+    const extraCols = extraColsFor(report.sectionKey);
     const excelRows = rows.map((r) => {
       const row = { Nama: r.pegawai?.nama, NIP: r.pegawai?.nip, "Unit Kerja": r.pegawai?.unitKerja };
-      extraCols.forEach((c) => (row[labelFor(reportKey, c)] = displayValue(reportKey, r, c)));
+      extraCols.forEach((c) => (row[labelFor(report.sectionKey, c)] = displayValue(report.sectionKey, r, c)));
       row["Jatuh Tempo"] = formatDate(r[dateField]);
       row["Status"] = statusLabel(r._days);
       return row;
     });
-    exportGenericExcel(excelRows, label, `${reportKey}-laporan.xlsx`);
+    exportGenericExcel(excelRows, report.label, `${report.key}-laporan.xlsx`);
   }
 
-  function handleExportPdf(reportKey, label) {
-    const rows = rowsFor(reportKey);
-    const dateField = SYSTEM_REMINDER_FIELDS[reportKey];
-    const extraCols = extraColsFor(reportKey);
-    const head = ["Nama", "NIP", "Unit Kerja", ...extraCols.map((c) => labelFor(reportKey, c)), "Jatuh Tempo", "Status"];
+  function handleExportPdf(report) {
+    const rows = rowsForReport(report);
+    const dateField = SYSTEM_REMINDER_FIELDS[report.sectionKey];
+    const extraCols = extraColsFor(report.sectionKey);
+    const head = ["Nama", "NIP", "Unit Kerja", ...extraCols.map((c) => labelFor(report.sectionKey, c)), "Jatuh Tempo", "Status"];
     const body = rows.map((r) => [
       r.pegawai?.nama, r.pegawai?.nip, r.pegawai?.unitKerja,
-      ...extraCols.map((c) => displayValue(reportKey, r, c)),
+      ...extraCols.map((c) => displayValue(report.sectionKey, r, c)),
       formatDate(r[dateField]),
       statusLabel(r._days),
     ]);
-    exportPdfTable({ title: label, head, body, filename: `${reportKey}-laporan.pdf` });
+    exportPdfTable({ title: report.label, head, body, filename: `${report.key}-laporan.pdf` });
   }
 
   return (
@@ -110,7 +132,7 @@ export default function Laporan() {
       <div className="mb-6">
         <h1 className="font-display text-2xl text-[color:var(--color-ink-900)]">Laporan</h1>
         <p className="text-sm text-[color:var(--color-ink-500)] mt-1">
-          Cetak dan ekspor daftar dokumen yang sudah berakhir atau akan segera berakhir, dalam format PDF atau Excel.
+          Cetak dan ekspor daftar dokumen yang sudah kedaluwarsa atau akan berakhir dalam {THRESHOLD_DAYS} hari, dalam format PDF atau Excel.
         </p>
       </div>
 
@@ -119,28 +141,25 @@ export default function Laporan() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {REPORTS.map((r) => {
-            const rows = rowsFor(r.key);
-            const expiredCount = rows.filter((x) => x._days < 0).length;
+            const rows = rowsForReport(r);
+            const isExpiredReport = r.key.endsWith("-expired");
             return (
               <div key={r.key} className="card p-5 flex items-center justify-between">
                 <div>
                   <div className="font-medium text-[color:var(--color-ink-900)]">{r.label}</div>
-                  <div className="text-xs text-[color:var(--color-ink-500)] mt-0.5">
+                  <div className={`text-xs mt-0.5 ${isExpiredReport && rows.length > 0 ? "text-[color:var(--color-red-700)]" : "text-[color:var(--color-ink-500)]"}`}>
                     {rows.length} dokumen
-                    {expiredCount > 0 && (
-                      <span className="text-[color:var(--color-red-700)]"> · {expiredCount} sudah lewat</span>
-                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleExportPdf(r.key, r.label)}
+                    onClick={() => handleExportPdf(r)}
                     className="px-3 py-1.5 text-xs rounded-lg border border-[color:var(--color-teal-700)] text-[color:var(--color-teal-700)] hover:bg-[color:var(--color-teal-100)]"
                   >
                     PDF
                   </button>
                   <button
-                    onClick={() => handleExportExcel(r.key, r.label)}
+                    onClick={() => handleExportExcel(r)}
                     className="px-3 py-1.5 text-xs rounded-lg bg-[color:var(--color-teal-700)] text-white hover:bg-[color:var(--color-teal-900)]"
                   >
                     Excel
