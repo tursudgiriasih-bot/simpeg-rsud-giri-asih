@@ -6,21 +6,10 @@ import { fetchSectionAcrossPegawai } from "../utils/queries";
 import { daysUntil, urgencyStatus, URGENCY_COLORS, formatDate } from "../utils/helpers";
 import { exportGenericExcel } from "../utils/exportExcel";
 import { exportPdfTable } from "../utils/exportPdf";
+import { SYSTEM_REMINDER_FIELDS } from "../utils/reminderFields";
 
 const currentYear = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => currentYear - 1 + i);
-
-// Field tanggal "pengingat" resmi per bagian sistem -- HARUS selalu sama dengan
-// yang dipakai Dashboard (lihat fetchDashboardData di utils/queries.js), supaya
-// angka di halaman ini selalu sinkron dengan Dashboard. Diprioritaskan di atas
-// data reminderThreshold yang tersimpan di Firestore, karena data lama yang
-// sudah pernah di-seed sebelumnya mungkin belum punya penanda itu.
-const SYSTEM_REMINDER_FIELDS = {
-  sip: "tanggalBerakhir",
-  spk: "tanggalBerakhir",
-  kgb: "tanggalBerakhir",
-  riwayatPangkat: "targetKenaikanBerikutnya",
-};
 
 export default function CekMasaBerlaku() {
   const [sections, setSections] = useState([]);

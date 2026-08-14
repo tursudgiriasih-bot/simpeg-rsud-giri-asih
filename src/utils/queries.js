@@ -12,6 +12,8 @@ export function pegawaiIdOf(docSnap) {
   return docSnap.ref.parent.parent.id;
 }
 
+import { SYSTEM_REMINDER_FIELDS } from "./reminderFields";
+
 async function fetchReminderCollection(collectionName, dateField, detailBuilder, pegawaiMap) {
   const snap = await getDocs(collectionGroup(db, collectionName));
   const items = [];
@@ -39,10 +41,10 @@ export async function fetchDashboardData() {
   const pegawaiMap = Object.fromEntries(pegawaiList.map((p) => [p.id, p]));
 
   const [sip, spk, kgb, pangkat, cpdSnap, dokumenSnap] = await Promise.all([
-    fetchReminderCollection("sip", "tanggalBerakhir", (d) => `SIP No. ${d.nomorSip || "-"}`, pegawaiMap),
-    fetchReminderCollection("spk", "tanggalBerakhir", (d) => `SPK No. ${d.nomorSpk || "-"}`, pegawaiMap),
-    fetchReminderCollection("kgb", "tanggalBerakhir", (d) => `KGB No. ${d.nomorSk || "-"}`, pegawaiMap),
-    fetchReminderCollection("riwayatPangkat", "targetKenaikanBerikutnya", (d) => `Kenaikan dari ${d.pangkat || "-"} (${d.golongan || "-"})`, pegawaiMap),
+    fetchReminderCollection("sip", SYSTEM_REMINDER_FIELDS.sip, (d) => `SIP No. ${d.nomorSip || "-"}`, pegawaiMap),
+    fetchReminderCollection("spk", SYSTEM_REMINDER_FIELDS.spk, (d) => `SPK No. ${d.nomorSpk || "-"}`, pegawaiMap),
+    fetchReminderCollection("kgb", SYSTEM_REMINDER_FIELDS.kgb, (d) => `KGB No. ${d.nomorSk || "-"}`, pegawaiMap),
+    fetchReminderCollection("riwayatPangkat", SYSTEM_REMINDER_FIELDS.riwayatPangkat, (d) => `Kenaikan dari ${d.pangkat || "-"} (${d.golongan || "-"})`, pegawaiMap),
     getDocs(collectionGroup(db, "cpd")),
     getDocs(collectionGroup(db, "dokumenLain")),
   ]);
