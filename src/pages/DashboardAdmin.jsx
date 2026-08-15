@@ -43,6 +43,29 @@ function tallyFixedOrder(list, key, knownValues) {
   return rows;
 }
 
+// Mengenali variasi penulisan jenis kelamin yang umum dipakai (huruf besar/
+// kecil, singkatan, dsb) supaya data lama yang formatnya sedikit berbeda
+// tetap terhitung dengan benar -- bukan jatuh ke "Lainnya" hanya karena
+// tidak persis sama tulisannya. Yang benar-benar tidak dikenali atau kosong
+// tidak dihitung di kartu ini (kartu ini sengaja hanya 2 baris: Laki-laki
+// dan Perempuan, sesuai permintaan -- kalau angkanya belum pas, isi ulang
+// field Jenis Kelamin pegawai terkait lewat dropdown yang baru).
+function normalizeGender(raw) {
+  const v = (raw || "").trim().toLowerCase();
+  if (["laki-laki", "laki laki", "l", "pria", "male", "m"].includes(v)) return "Laki-laki";
+  if (["perempuan", "p", "wanita", "female", "f"].includes(v)) return "Perempuan";
+  return null;
+}
+
+function tallyGender(list) {
+  const counts = { "Laki-laki": 0, Perempuan: 0 };
+  list.forEach((p) => {
+    const g = normalizeGender(p.jenisKelamin);
+    if (g) counts[g] += 1;
+  });
+  return [["Laki-laki", counts["Laki-laki"]], ["Perempuan", counts["Perempuan"]]];
+}
+
 function ageOf(tanggalLahir) {
   if (!tanggalLahir) return null;
   const dob = tanggalLahir?.toDate ? tanggalLahir.toDate() : new Date(tanggalLahir);
@@ -115,7 +138,7 @@ export default function DashboardAdmin() {
   const perUnit = useMemo(() => (data ? groupCount(data.pegawaiList, "unitKerja") : []), [data]);
   const perGolongan = useMemo(() => (data ? groupCount(data.pegawaiList, "golongan") : []), [data]);
   const perJabatan = useMemo(() => (data ? groupCount(data.pegawaiList, "jabatan") : []), [data]);
-  const genderRows = useMemo(() => (data ? tallyFixedOrder(data.pegawaiList, "jenisKelamin", ["Laki-laki", "Perempuan"]) : []), [data]);
+  const genderRows = useMemo(() => (data ? tallyGender(data.pegawaiList) : []), [data]);
   const statusRows = useMemo(() => (data ? tallyFixedOrder(data.pegawaiList, "statusPegawai", ["PNS", "PPPK", "BLUD"]) : []), [data]);
   const ageRows = useMemo(() => (data ? tallyAge(data.pegawaiList) : []), [data]);
 
