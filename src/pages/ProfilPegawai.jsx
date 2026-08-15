@@ -228,17 +228,44 @@ export default function ProfilPegawai() {
           </div>
           {editingIdentity ? (
             <form onSubmit={saveIdentity} className="grid grid-cols-2 gap-4">
-              {Object.keys(identityForm).map((key) => (
-                <div key={key}>
-                  <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1 capitalize">{key}</label>
-                  <input
-                    type="text"
-                    value={identityForm[key] || ""}
-                    onChange={(e) => setIdentityForm({ ...identityForm, [key]: e.target.value })}
-                    className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
-                  />
-                </div>
-              ))}
+              {Object.keys(identityForm).map((key) => {
+                const isDate = ["tanggalLahir", "tmtCpns", "tmtPns"].includes(key);
+                const isGender = key === "jenisKelamin";
+                const isStatus = key === "statusPegawai";
+                return (
+                  <div key={key}>
+                    <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1 capitalize">{key}</label>
+                    {isGender ? (
+                      <select
+                        value={identityForm[key] || ""}
+                        onChange={(e) => setIdentityForm({ ...identityForm, [key]: e.target.value })}
+                        className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
+                      >
+                        <option value="">- Pilih -</option>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                      </select>
+                    ) : isStatus ? (
+                      <select
+                        value={identityForm[key] || ""}
+                        onChange={(e) => setIdentityForm({ ...identityForm, [key]: e.target.value })}
+                        className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
+                      >
+                        <option value="PNS">PNS</option>
+                        <option value="PPPK">PPPK</option>
+                        <option value="BLUD">BLUD</option>
+                      </select>
+                    ) : (
+                      <input
+                        type={isDate ? "date" : "text"}
+                        value={identityForm[key] || ""}
+                        onChange={(e) => setIdentityForm({ ...identityForm, [key]: e.target.value })}
+                        className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
+                      />
+                    )}
+                  </div>
+                );
+              })}
               <div className="col-span-2 flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setEditingIdentity(false)} className="px-4 py-2 text-sm rounded-lg border border-[color:var(--color-teal-100)]">
                   Batal

@@ -7,9 +7,12 @@ import ReminderList from "../components/ReminderList";
 import { fetchDashboardData } from "../utils/queries";
 import { seedDefaultSectionsIfEmpty } from "../utils/sectionCatalog";
 
-// Ambang "akan berakhir" dashboard -- dulu SIP/SPK/KGB terpisah di 90 hari,
-// sekarang disamakan semua jadi 180 hari (lihat fetchDashboardData di utils/queries.js).
+// Ambang "akan berakhir" dashboard -- disamakan semua kategori jadi 180 hari
+// (lihat fetchDashboardData di utils/queries.js).
 const THRESHOLD_DAYS = 180;
+
+const AGE_BUCKETS = ["20-30", "31-40", "41-50", "51-60", "61-65"];
+const CHART_TICK = { fontSize: 12, fill: "var(--color-ink-500)" };
 
 function groupCount(list, key) {
   const map = {};
@@ -22,9 +25,59 @@ function groupCount(list, key) {
     .map(([name, value]) => ({ name, value }));
 }
 
+// Menghitung jumlah per kategori TETAP (urutan sudah ditentukan, bukan
+// diurutkan berdasar jumlah terbanyak) -- lebih enak dibaca untuk jenis
+// kelamin/status pegawai dibanding groupCount() yang mengurutkan bebas.
+// Nilai yang tidak dikenali (data lama/salah ketik) masuk "Lainnya", dan
+// yang kosong masuk "Belum diisi", supaya tidak ada data yang hilang diam-diam.
+function tallyFixedOrder(list, key, knownValues) {
+  const counts = {};
+  list.forEach((p) => {
+    const v = (p[key] || "").trim();
+    const bucket = !v ? "Belum diisi" : knownValues.includes(v) ? v : "Lainnya";
+    counts[bucket] = (counts[bucket] || 0) + 1;
+  });
+  const rows = knownValues.map((k) => [k, counts[k] || 0]);
+  if (counts["Lainnya"]) rows.push(["Lainnya", counts["Lainnya"]]);
+  if (counts["Belum diisi"]) rows.push(["Belum diisi", counts["Belum diisi"]]);
+  return rows;
+}
+
+function ageOf(tanggalLahir) {
+  if (!tanggalLahir) return null;
+  const dob = tanggalLahir?.toDate ? tanggalLahir.toDate() : new Date(tanggalLahir);
+  if (isNaN(dob.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const m = now.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+  return age;
+}
+
+function ageBucketOf(age) {
+  if (age === null) return "Belum diisi";
+  if (age <= 30) return "20-30";
+  if (age <= 40) return "31-40";
+  if (age <= 50) return "41-50";
+  if (age <= 60) return "51-60";
+  if (age <= 65) return "61-65";
+  return "> 65";
+}
+
+function tallyAge(list) {
+  const counts = {};
+  list.forEach((p) => {
+    const bucket = ageBucketOf(ageOf(p.tanggalLahir));
+    counts[bucket] = (counts[bucket] || 0) + 1;
+  });
+  const rows = AGE_BUCKETS.map((k) => [k, counts[k] || 0]);
+  if (counts["> 65"]) rows.push(["> 65", counts["> 65"]]);
+  if (counts["Belum diisi"]) rows.push(["Belum diisi", counts["Belum diisi"]]);
+  return rows;
+}
+
 // Memecah satu daftar reminder jadi jumlah "sudah expired" (_days < 0) dan
-// "akan berakhir" (_days >= 0, masih dalam ambang) -- inilah yang ditampilkan
-// terpisah sesuai permintaan, bukan cuma satu angka gabungan seperti sebelumnya.
+// "akan berakhir" (_days >= 0, masih dalam ambang) untuk grafik kepatuhan.
 function splitStatus(list) {
   return {
     expired: list.filter((x) => x._days < 0).length,
@@ -32,7 +85,21 @@ function splitStatus(list) {
   };
 }
 
-const CHART_TICK = { fontSize: 12, fill: "var(--color-ink-500)" };
+function BreakdownCard({ title, rows }) {
+  return (
+    <div className="card p-5">
+      <div className="text-xs uppercase tracking-wide text-[color:var(--color-ink-500)] mb-3">{title}</div>
+      <ul className="space-y-1.5">
+        {rows.map(([label, value]) => (
+          <li key={label} className="flex justify-between items-baseline text-sm">
+            <span className="text-[color:var(--color-ink-700)]">{label}</span>
+            <span className="font-mono-data font-semibold text-[color:var(--color-teal-900)]">{value}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function DashboardAdmin() {
   const [data, setData] = useState(null);
@@ -48,6 +115,9 @@ export default function DashboardAdmin() {
   const perUnit = useMemo(() => (data ? groupCount(data.pegawaiList, "unitKerja") : []), [data]);
   const perGolongan = useMemo(() => (data ? groupCount(data.pegawaiList, "golongan") : []), [data]);
   const perJabatan = useMemo(() => (data ? groupCount(data.pegawaiList, "jabatan") : []), [data]);
+  const genderRows = useMemo(() => (data ? tallyFixedOrder(data.pegawaiList, "jenisKelamin", ["Laki-laki", "Perempuan"]) : []), [data]);
+  const statusRows = useMemo(() => (data ? tallyFixedOrder(data.pegawaiList, "statusPegawai", ["PNS", "PPPK", "BLUD"]) : []), [data]);
+  const ageRows = useMemo(() => (data ? tallyAge(data.pegawaiList) : []), [data]);
 
   const complianceData = useMemo(() => {
     if (!data) return [];
@@ -58,15 +128,6 @@ export default function DashboardAdmin() {
       { name: "Kenaikan Pangkat", ...splitStatus(data.reminders.pangkat) },
     ];
   }, [data]);
-
-  const totalExpired = useMemo(
-    () => (data ? complianceData.reduce((sum, c) => sum + c.expired, 0) : 0),
-    [data, complianceData]
-  );
-  const totalUpcoming = useMemo(
-    () => (data ? complianceData.reduce((sum, c) => sum + c.upcoming, 0) : 0),
-    [data, complianceData]
-  );
 
   if (loading) {
     return (
@@ -83,15 +144,15 @@ export default function DashboardAdmin() {
         <p className="text-sm text-[color:var(--color-ink-500)] mt-1">Ringkasan data kepegawaian secara real time.</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Pegawai" value={data.pegawaiList.length} />
-        <StatCard label={`Akan Berakhir \u2264 ${THRESHOLD_DAYS} Hari`} value={totalUpcoming} />
-        <StatCard label="Sudah Expired" value={totalExpired} />
-        <StatCard label="Dokumen Belum Lengkap" value={data.dokumenBelumLengkap.length} />
+        <BreakdownCard title="Jenis Kelamin" rows={genderRows} />
+        <BreakdownCard title="Status Kepegawaian" rows={statusRows} />
+        <BreakdownCard title="Rentang Usia" rows={ageRows} />
       </div>
 
-      {/* Grafik ringkasan kepatuhan dokumen -- inti dari permintaan: jumlah per
-          kategori (SIP/SPK/KGB/Kenaikan Pangkat), dipisah expired vs akan berakhir */}
+      {/* Grafik ringkasan kepatuhan dokumen -- jumlah per kategori
+          (SIP/SPK/KGB/Kenaikan Pangkat), dipisah expired vs akan berakhir */}
       <div className="card p-5 mb-6">
         <div className="font-medium text-[color:var(--color-ink-900)]">Ringkasan Kepatuhan Dokumen</div>
         <div className="text-xs text-[color:var(--color-ink-500)] mb-4">

@@ -173,9 +173,10 @@ export default function DataPegawai() {
             ["nik", "NIK", "text"],
             ["tempatLahir", "Tempat Lahir", "text"],
             ["tanggalLahir", "Tanggal Lahir", "date"],
-            ["jenisKelamin", "Jenis Kelamin", "text"],
+            ["jenisKelamin", "Jenis Kelamin", "select-gender"],
             ["agama", "Agama", "text"],
             ["statusPerkawinan", "Status Perkawinan", "text"],
+            ["statusPegawai", "Status Pegawai", "select-status"],
             ["noHp", "Nomor HP", "text"],
             ["email", "Email", "email"],
             ["pendidikan", "Pendidikan Terakhir", "text"],
@@ -188,12 +189,34 @@ export default function DataPegawai() {
           ].map(([name, label, type]) => (
             <div key={name}>
               <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1">{label}</label>
-              <input
-                type={type}
-                value={form[name]}
-                onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-                className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
-              />
+              {type === "select-gender" ? (
+                <select
+                  value={form[name]}
+                  onChange={(e) => setForm({ ...form, [name]: e.target.value })}
+                  className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
+                >
+                  <option value="">- Pilih -</option>
+                  <option value="Laki-laki">Laki-laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                </select>
+              ) : type === "select-status" ? (
+                <select
+                  value={form[name]}
+                  onChange={(e) => setForm({ ...form, [name]: e.target.value })}
+                  className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
+                >
+                  <option value="PNS">PNS</option>
+                  <option value="PPPK">PPPK</option>
+                  <option value="BLUD">BLUD</option>
+                </select>
+              ) : (
+                <input
+                  type={type}
+                  value={form[name]}
+                  onChange={(e) => setForm({ ...form, [name]: e.target.value })}
+                  className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
+                />
+              )}
             </div>
           ))}
           <div className="col-span-2">
