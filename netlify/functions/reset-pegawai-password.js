@@ -1,9 +1,13 @@
-// Import defensif -- di beberapa environment ESM (termasuk Netlify Functions),
-// "import admin from 'firebase-admin'" bisa menghasilkan objek yang tidak
-// lengkap (property .apps hilang) karena firebase-admin aslinya paket
-// CommonJS. Ambil .default kalau ada, kalau tidak pakai namespace-nya langsung.
-import * as adminPkg from "firebase-admin";
-const admin = adminPkg.default || adminPkg;
+// Pakai modular API firebase-admin (firebase-admin/app, /auth, /firestore),
+// BUKAN "import admin from 'firebase-admin'" (namespace/default export).
+// Cara lama itu diketahui bermasalah di banyak environment ESM/bundler
+// (termasuk Netlify Functions) -- objeknya bisa ke-import tidak lengkap,
+// bikin "Cannot read properties of undefined (reading 'apps')" walau
+// firebase-admin sudah ter-install dengan benar. Modular API tidak
+// punya masalah ini karena tiap sub-paket punya named export ESM asli.
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 
 // Pengganti Firebase Cloud Function (functions/index.js -> resetPegawaiPassword),
 // dipindah ke Netlify Function supaya tidak perlu upgrade Firebase ke Blaze plan.
@@ -22,15 +26,18 @@ const admin = adminPkg.default || adminPkg;
 // Ketiganya diambil dari scripts/serviceAccountKey.json milik Anda sendiri
 // (field project_id, client_email, private_key).
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
     }),
   });
 }
+
+const auth = getAuth();
+const db = getFirestore();
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -52,12 +59,12 @@ export default async (req) => {
 
   let decoded;
   try {
-    decoded = await admin.auth().verifyIdToken(idToken);
+    decoded = await auth.verifyIdToken(idToken);
   } catch {
     return json(401, { error: "Sesi tidak valid, silakan login ulang." });
   }
 
-  const callerSnap = await admin.firestore().collection("users").doc(decoded.uid).get();
+  const callerSnap = await db.collection("users").doc(decoded.uid).get();
   if (!callerSnap.exists || callerSnap.data().role !== "admin") {
     return json(403, { error: "Hanya Admin yang boleh mereset password pegawai." });
   }
@@ -74,19 +81,14 @@ export default async (req) => {
     return json(400, { error: "Data tidak lengkap atau password terlalu pendek (minimal 6 karakter)." });
   }
 
-  const userQuery = await admin
-    .firestore()
-    .collection("users")
-    .where("pegawaiId", "==", pegawaiId)
-    .limit(1)
-    .get();
+  const userQuery = await db.collection("users").where("pegawaiId", "==", pegawaiId).limit(1).get();
 
   if (userQuery.empty) {
     return json(404, { error: "Akun login untuk pegawai ini belum ada (pegawai belum mendaftar/diverifikasi)." });
   }
 
   const targetUid = userQuery.docs[0].id;
-  await admin.auth().updateUser(targetUid, { password: newPassword });
+  await auth.updateUser(targetUid, { password: newPassword });
 
   return json(200, { success: true });
 };

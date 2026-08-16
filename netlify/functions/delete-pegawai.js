@@ -1,9 +1,9 @@
-// Import defensif -- di beberapa environment ESM (termasuk Netlify Functions),
-// "import admin from 'firebase-admin'" bisa menghasilkan objek yang tidak
-// lengkap (property .apps hilang) karena firebase-admin aslinya paket
-// CommonJS. Ambil .default kalau ada, kalau tidak pakai namespace-nya langsung.
-import * as adminPkg from "firebase-admin";
-const admin = adminPkg.default || adminPkg;
+// Pakai modular API firebase-admin (firebase-admin/app, /auth, /firestore) --
+// lihat catatan lengkap di reset-pegawai-password.js soal kenapa BUKAN pakai
+// "import admin from 'firebase-admin'".
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 
 // Menghapus data pegawai SECARA TUNTAS -- dipanggil dari tombol "Hapus" di
 // halaman Data Pegawai. Sebelumnya penghapusan hanya menghapus dokumen
@@ -21,15 +21,18 @@ const admin = adminPkg.default || adminPkg;
 // FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
 // (diisi di Netlify: Site settings -> Environment variables).
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
     }),
   });
 }
+
+const auth = getAuth();
+const db = getFirestore();
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -56,12 +59,12 @@ export default async (req) => {
 
   let decoded;
   try {
-    decoded = await admin.auth().verifyIdToken(idToken);
+    decoded = await auth.verifyIdToken(idToken);
   } catch {
     return json(401, { error: "Sesi tidak valid, silakan login ulang." });
   }
 
-  const callerSnap = await admin.firestore().collection("users").doc(decoded.uid).get();
+  const callerSnap = await db.collection("users").doc(decoded.uid).get();
   if (!callerSnap.exists || callerSnap.data().role !== "admin") {
     return json(403, { error: "Hanya Admin yang boleh menghapus data pegawai." });
   }
@@ -78,14 +81,14 @@ export default async (req) => {
     return json(400, { error: "pegawaiId wajib diisi." });
   }
 
-  const pegawaiRef = admin.firestore().collection("pegawai").doc(pegawaiId);
+  const pegawaiRef = db.collection("pegawai").doc(pegawaiId);
 
   // 1) Hapus akun login (Firebase Auth) + dokumen mapping "users/{uid}"
-  const usersQuery = await admin.firestore().collection("users").where("pegawaiId", "==", pegawaiId).get();
+  const usersQuery = await db.collection("users").where("pegawaiId", "==", pegawaiId).get();
   await Promise.all(
     usersQuery.docs.map(async (d) => {
       try {
-        await admin.auth().deleteUser(d.id);
+        await auth.deleteUser(d.id);
       } catch {
         // Akun Auth mungkin sudah tidak ada / sudah terhapus sebelumnya -- lanjutkan saja.
       }
