@@ -22,7 +22,8 @@
     "xlsx": "^0.18.5"
   },
   "overrides": {
-    "react-is": "^19.2.8"
+    "react-is": "^19.2.8",
+    "jose": "^4.0.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
