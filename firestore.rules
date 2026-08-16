@@ -44,7 +44,7 @@ service cloud.firestore {
       allow update: if isAdmin() ||
         (isOwner(pegawaiId) &&
          request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['alamat', 'noHp', 'email', 'fotoUrl', 'updatedAt']));
+           .hasOnly(['jenisKelamin', 'agama', 'statusPerkawinan', 'pendidikan', 'alamat', 'noHp', 'email', 'fotoUrl', 'updatedAt']));
 
       match /{sub}/{docId} {
         allow read: if isAdmin() || isOwner(pegawaiId);
