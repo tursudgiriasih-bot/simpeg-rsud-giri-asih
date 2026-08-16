@@ -12,6 +12,29 @@ import { useAuth } from "../context/AuthContext";
 
 const IDENTITY_EDITABLE_BY_PEGAWAI = ["alamat", "noHp", "email"];
 
+// Daftar field identitas yang bisa diisi/diedit Admin -- SENGAJA daftar tetap
+// (bukan Object.keys(pegawai)), supaya field yang dari awal kosong (mis.
+// pegawai daftar mandiri yang tidak diminta isi Jenis Kelamin/Agama/dst)
+// tetap muncul di form Edit dan bisa dilengkapi -- bukan hilang begitu saja
+// hanya karena belum pernah ada nilainya. Urutan & isinya harus sama dengan
+// daftar tampilan "Data Identitas" di bawah supaya konsisten.
+const IDENTITY_EDITABLE_BY_ADMIN = [
+  "nama", "nip", "nik", "tempatLahir", "tanggalLahir", "jenisKelamin", "agama",
+  "statusPerkawinan", "alamat", "noHp", "email", "pendidikan", "jabatan",
+  "unitKerja", "pangkat", "golongan", "tmtCpns", "tmtPns", "statusPegawai",
+];
+
+// Label yang enak dibaca untuk tiap field di atas -- dipakai di form Edit
+// supaya tidak menampilkan nama field mentah seperti "tempatLahir"/"noHp".
+const IDENTITY_FIELD_LABELS = {
+  nama: "Nama Lengkap", nip: "NIP", nik: "NIK", tempatLahir: "Tempat Lahir",
+  tanggalLahir: "Tanggal Lahir", jenisKelamin: "Jenis Kelamin", agama: "Agama",
+  statusPerkawinan: "Status Perkawinan", alamat: "Alamat", noHp: "No HP", email: "Email",
+  pendidikan: "Pendidikan", jabatan: "Jabatan", unitKerja: "Unit Kerja",
+  pangkat: "Pangkat", golongan: "Golongan", tmtCpns: "TMT CPNS", tmtPns: "TMT PNS",
+  statusPegawai: "Status Pegawai",
+};
+
 function generateTempPassword() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
   let out = "";
@@ -89,7 +112,7 @@ export default function ProfilPegawai() {
   const canEditAll = isAdmin;
 
   function startEditIdentity() {
-    const editable = isAdmin ? Object.keys(pegawai) : IDENTITY_EDITABLE_BY_PEGAWAI;
+    const editable = isAdmin ? IDENTITY_EDITABLE_BY_ADMIN : IDENTITY_EDITABLE_BY_PEGAWAI;
     const vals = {};
     editable.forEach((k) => {
       const v = pegawai[k];
@@ -234,7 +257,7 @@ export default function ProfilPegawai() {
                 const isStatus = key === "statusPegawai";
                 return (
                   <div key={key}>
-                    <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1 capitalize">{key}</label>
+                    <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1">{IDENTITY_FIELD_LABELS[key] || key}</label>
                     {isGender ? (
                       <select
                         value={identityForm[key] || ""}
