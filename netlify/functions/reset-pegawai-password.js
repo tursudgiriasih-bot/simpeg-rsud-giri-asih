@@ -1,4 +1,9 @@
-import admin from "firebase-admin";
+// Import defensif -- di beberapa environment ESM (termasuk Netlify Functions),
+// "import admin from 'firebase-admin'" bisa menghasilkan objek yang tidak
+// lengkap (property .apps hilang) karena firebase-admin aslinya paket
+// CommonJS. Ambil .default kalau ada, kalau tidak pakai namespace-nya langsung.
+import * as adminPkg from "firebase-admin";
+const admin = adminPkg.default || adminPkg;
 
 // Pengganti Firebase Cloud Function (functions/index.js -> resetPegawaiPassword),
 // dipindah ke Netlify Function supaya tidak perlu upgrade Firebase ke Blaze plan.
