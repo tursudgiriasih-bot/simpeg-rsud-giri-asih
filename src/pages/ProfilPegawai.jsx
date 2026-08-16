@@ -10,7 +10,12 @@ import { subscribeSections } from "../utils/sectionCatalog";
 import { formatDate, toDateInputValue, initials, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB, formatFileSize } from "../utils/helpers";
 import { useAuth } from "../context/AuthContext";
 
-const IDENTITY_EDITABLE_BY_PEGAWAI = ["alamat", "noHp", "email"];
+// Field yang boleh diedit PEGAWAI sendiri -- data pribadi yang mereka tahu
+// sendiri dan tidak butuh verifikasi dokumen resmi. Field resmi/administratif
+// (NIP, NIK, Jabatan, Unit Kerja, Pangkat, Golongan, TMT, Status Pegawai)
+// SENGAJA tidak dimasukkan -- itu harus lewat Admin karena butuh dicocokkan
+// dengan dokumen kepegawaian asli.
+const IDENTITY_EDITABLE_BY_PEGAWAI = ["jenisKelamin", "agama", "statusPerkawinan", "pendidikan", "alamat", "noHp", "email"];
 
 // Daftar field identitas yang bisa diisi/diedit Admin -- SENGAJA daftar tetap
 // (bukan Object.keys(pegawai)), supaya field yang dari awal kosong (mis.

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, doc, onSnapshot, query, updateDoc, where, addDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import Layout from "../components/Layout";
 import Modal from "../components/Modal";
 import { fetchAllPegawai } from "../utils/queries";
@@ -87,8 +87,20 @@ export default function VerifikasiPendaftaran() {
   }
 
   async function reject(reg) {
-    const catatan = prompt(`Alasan penolakan pendaftaran "${reg.nama}" (opsional):`) || "";
-    await updateDoc(doc(db, "users", reg.uid), { role: "rejected", status: "rejected", catatan });
+    if (!confirm(`Tolak pendaftaran "${reg.nama}"? Akun login dan data pendaftarannya akan dihapus permanen -- NIP ini nantinya bisa dipakai daftar ulang.`)) return;
+    prompt(`Alasan penolakan pendaftaran "${reg.nama}" (opsional, buat catatan Anda sendiri -- tidak disimpan di sistem):`);
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch("/api/delete-pegawai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ uid: reg.uid }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Gagal menolak pendaftaran.");
+    } catch (err) {
+      alert(err.message || "Gagal menolak pendaftaran. Coba lagi.");
+    }
   }
 
   return (

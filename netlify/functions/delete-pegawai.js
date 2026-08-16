@@ -76,9 +76,23 @@ export default async (req) => {
     return json(400, { error: "Data tidak valid." });
   }
 
-  const { pegawaiId } = body || {};
+  const { pegawaiId, uid } = body || {};
+
+  // Mode A: hapus pendaftaran yang masih "pending"/"rejected" -- belum ada
+  // dokumen pegawai sama sekali, cukup hapus akun Auth + dokumen users/{uid}
+  // langsung, supaya NIP-nya bebas dipakai daftar ulang.
+  if (uid) {
+    try {
+      await auth.deleteUser(uid);
+    } catch {
+      // Akun Auth mungkin sudah tidak ada -- lanjutkan saja.
+    }
+    await db.collection("users").doc(uid).delete();
+    return json(200, { success: true });
+  }
+
   if (!pegawaiId) {
-    return json(400, { error: "pegawaiId wajib diisi." });
+    return json(400, { error: "pegawaiId atau uid wajib diisi." });
   }
 
   const pegawaiRef = db.collection("pegawai").doc(pegawaiId);
