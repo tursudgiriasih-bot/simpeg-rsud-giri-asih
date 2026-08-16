@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, onSnapshot, query, updateDoc, where, addDoc } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, updateDoc, where, addDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import Layout from "../components/Layout";
 import Modal from "../components/Modal";
@@ -13,6 +13,27 @@ export default function VerifikasiPendaftaran() {
   const [reviewing, setReviewing] = useState(null); // registration doc being reviewed
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
+  const [orphanedAccounts, setOrphanedAccounts] = useState([]);
+
+  // Mendeteksi akun login yang "yatim" -- data pegawainya sudah terhapus
+  // (mis. dihapus lewat cara lama sebelum fitur Hapus diperbaiki untuk ikut
+  // membersihkan akun Auth), tapi akun login & NIP-nya masih nyangkut,
+  // memblokir orang itu daftar ulang dengan NIP yang sama.
+  useEffect(() => {
+    const q = query(collection(db, "users"), where("role", "==", "pegawai"));
+    const unsub = onSnapshot(q, async (snap) => {
+      const users = snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+      const checked = await Promise.all(
+        users.map(async (u) => {
+          if (!u.pegawaiId) return null;
+          const pegawaiSnap = await getDoc(doc(db, "pegawai", u.pegawaiId));
+          return pegawaiSnap.exists() ? null : u;
+        })
+      );
+      setOrphanedAccounts(checked.filter(Boolean));
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "pending"));
@@ -103,6 +124,22 @@ export default function VerifikasiPendaftaran() {
     }
   }
 
+  async function cleanupOrphan(u) {
+    if (!confirm(`Bersihkan akun login "${u.nama || "(nama tidak tercatat)"}" yang datanya sudah terhapus? NIP-nya akan bebas dipakai daftar ulang.`)) return;
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch("/api/delete-pegawai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ uid: u.uid }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Gagal membersihkan akun.");
+    } catch (err) {
+      alert(err.message || "Gagal membersihkan akun. Coba lagi.");
+    }
+  }
+
   return (
     <Layout>
       <div className="mb-6">
@@ -111,6 +148,32 @@ export default function VerifikasiPendaftaran() {
           Pegawai yang mendaftar mandiri akan muncul di sini sampai Anda menautkan atau menolaknya.
         </p>
       </div>
+
+      {orphanedAccounts.length > 0 && (
+        <div className="mb-6">
+          <h2 className="font-medium text-[color:var(--color-red-700)] mb-1">Akun Bermasalah ({orphanedAccounts.length})</h2>
+          <p className="text-xs text-[color:var(--color-ink-500)] mb-3">
+            Akun login ini datanya sudah terhapus tapi akun & NIP-nya belum ikut bersih (biasanya sisa dari sebelum
+            fitur Hapus diperbaiki). Klik "Bersihkan Akun" supaya NIP-nya bisa dipakai daftar ulang.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {orphanedAccounts.map((u) => (
+              <div key={u.uid} className="card p-4 flex items-center justify-between border border-[color:var(--color-red-100)]">
+                <div>
+                  <div className="font-medium text-sm text-[color:var(--color-ink-900)]">{u.nama || "(nama tidak tercatat)"}</div>
+                  <div className="text-xs font-mono-data text-[color:var(--color-ink-500)]">UID {u.uid}</div>
+                </div>
+                <button
+                  onClick={() => cleanupOrphan(u)}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-[color:var(--color-red-500)] text-[color:var(--color-red-500)] hover:bg-[color:var(--color-red-100)]"
+                >
+                  Bersihkan Akun
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-sm text-[color:var(--color-ink-500)]">Memuat…</div>

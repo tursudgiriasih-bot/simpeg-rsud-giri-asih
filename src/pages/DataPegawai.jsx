@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
-import { db } from "../firebase";
+import { addDoc, collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { db, auth } from "../firebase";
 import Layout from "../components/Layout";
 import Modal from "../components/Modal";
 import { initials } from "../utils/helpers";
@@ -69,8 +69,19 @@ export default function DataPegawai() {
   }
 
   async function handleDelete(p) {
-    if (!confirm(`Hapus data pegawai "${p.nama}"? Seluruh riwayat dan dokumen terkait akan hilang.`)) return;
-    await deleteDoc(doc(db, "pegawai", p.id));
+    if (!confirm(`Hapus data pegawai "${p.nama}"? Seluruh riwayat, dokumen, DAN akun login-nya akan dihapus permanen -- NIP ini nantinya bisa dipakai daftar ulang.`)) return;
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch("/api/delete-pegawai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ pegawaiId: p.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Gagal menghapus data pegawai.");
+    } catch (err) {
+      alert(err.message || "Gagal menghapus data pegawai. Coba lagi.");
+    }
   }
 
   return (
