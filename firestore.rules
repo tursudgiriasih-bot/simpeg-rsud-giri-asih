@@ -44,7 +44,10 @@ service cloud.firestore {
       allow update: if isAdmin() ||
         (isOwner(pegawaiId) &&
          request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['jenisKelamin', 'agama', 'statusPerkawinan', 'pendidikan', 'alamat', 'noHp', 'email', 'fotoUrl', 'updatedAt']));
+           .hasOnly(['nama', 'nip', 'nik', 'tempatLahir', 'tanggalLahir', 'jenisKelamin', 'agama',
+                     'statusPerkawinan', 'alamat', 'noHp', 'email', 'pendidikan', 'jabatan',
+                     'unitKerja', 'pangkat', 'golongan', 'tmtCpns', 'tmtPns', 'statusPegawai',
+                     'fotoUrl', 'updatedAt']));
 
       match /{sub}/{docId} {
         allow read: if isAdmin() || isOwner(pegawaiId);

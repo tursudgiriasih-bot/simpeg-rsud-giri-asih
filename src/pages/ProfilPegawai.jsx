@@ -10,20 +10,10 @@ import { subscribeSections } from "../utils/sectionCatalog";
 import { formatDate, toDateInputValue, initials, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB, formatFileSize } from "../utils/helpers";
 import { useAuth } from "../context/AuthContext";
 
-// Field yang boleh diedit PEGAWAI sendiri -- data pribadi yang mereka tahu
-// sendiri dan tidak butuh verifikasi dokumen resmi. Field resmi/administratif
-// (NIP, NIK, Jabatan, Unit Kerja, Pangkat, Golongan, TMT, Status Pegawai)
-// SENGAJA tidak dimasukkan -- itu harus lewat Admin karena butuh dicocokkan
-// dengan dokumen kepegawaian asli.
-const IDENTITY_EDITABLE_BY_PEGAWAI = ["jenisKelamin", "agama", "statusPerkawinan", "pendidikan", "alamat", "noHp", "email"];
-
-// Daftar field identitas yang bisa diisi/diedit Admin -- SENGAJA daftar tetap
-// (bukan Object.keys(pegawai)), supaya field yang dari awal kosong (mis.
-// pegawai daftar mandiri yang tidak diminta isi Jenis Kelamin/Agama/dst)
-// tetap muncul di form Edit dan bisa dilengkapi -- bukan hilang begitu saja
-// hanya karena belum pernah ada nilainya. Urutan & isinya harus sama dengan
-// daftar tampilan "Data Identitas" di bawah supaya konsisten.
-const IDENTITY_EDITABLE_BY_ADMIN = [
+// Field identitas yang bisa diedit -- SAMA persis untuk Admin maupun Pegawai
+// (pegawai cuma bisa edit datanya SENDIRI, lihat pengecekan isOwner() di
+// firestore.rules -- tapi field yang boleh diisi sama seperti Admin).
+const IDENTITY_EDITABLE_FIELDS = [
   "nama", "nip", "nik", "tempatLahir", "tanggalLahir", "jenisKelamin", "agama",
   "statusPerkawinan", "alamat", "noHp", "email", "pendidikan", "jabatan",
   "unitKerja", "pangkat", "golongan", "tmtCpns", "tmtPns", "statusPegawai",
@@ -117,7 +107,7 @@ export default function ProfilPegawai() {
   const canEditAll = isAdmin;
 
   function startEditIdentity() {
-    const editable = isAdmin ? IDENTITY_EDITABLE_BY_ADMIN : IDENTITY_EDITABLE_BY_PEGAWAI;
+    const editable = IDENTITY_EDITABLE_FIELDS;
     const vals = {};
     editable.forEach((k) => {
       const v = pegawai[k];
