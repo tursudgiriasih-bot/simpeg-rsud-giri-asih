@@ -46,7 +46,7 @@ export default function Layout({ children }) {
         <div className="px-6 py-6 border-b border-white/10 flex items-center gap-3">
           <img src={logoRsud} alt="Logo RSUD Giri Asih" className="w-9 h-9 object-contain shrink-0" />
           <div>
-            <div className="font-display text-xl tracking-tight leading-tight">SIMPEG</div>
+            <div className="font-display text-xl tracking-tight leading-tight">SI-PATUH</div>
             <div className="text-[11px] text-teal-200/70">RSUD Giri Asih</div>
           </div>
         </div>

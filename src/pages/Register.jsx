@@ -100,7 +100,7 @@ export default function Register() {
         <div className="text-center mb-6">
           <img src={logoRsud} alt="Logo RSUD Giri Asih" className="w-14 h-14 object-contain mx-auto mb-2" />
           <div className="font-display text-lg text-white tracking-tight">RSUD GIRI ASIH</div>
-          <div className="text-sm text-teal-200/70 mt-1">Pendaftaran Akun Pegawai — SIMPEG</div>
+          <div className="text-sm text-teal-200/70 mt-1">Pendaftaran Akun Pegawai — SI-PATUH</div>
         </div>
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 space-y-4 shadow-xl">
           <p className="text-xs text-[color:var(--color-ink-500)] -mt-1 mb-1">

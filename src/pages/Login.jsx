@@ -77,14 +77,14 @@ export default function Login() {
             <img src={logoRsud} alt="Logo RSUD Giri Asih" className="w-12 h-12 object-contain shrink-0" />
             <div>
               <div className="font-display text-lg leading-tight">RSUD GIRI ASIH</div>
-              <div className="text-[11px] text-teal-200/70 tracking-wide">SIMPEG · Sistem Informasi Kepegawaian</div>
+              <div className="text-[11px] text-teal-200/70 tracking-wide">SI-PATUH · Sistem Peringatan Automatis Tenggat Urusan Hukum</div>
             </div>
           </div>
 
           {/* Blok sambutan -- foto gedung ditaruh sebagai elemen transparan di
               belakang teks, ukurannya mengikuti tinggi blok teks (bukan kartu
               foto terpisah), supaya proporsional dan menyatu dengan panel. */}
-          <div className="relative flex-1 flex items-center min-h-[320px]">
+          <div className="relative flex-1 flex items-start pt-6 min-h-[320px]">
             <img
               src={gedungRsud}
               alt=""
@@ -97,9 +97,13 @@ export default function Login() {
             />
             <div className="relative">
               <h1 className="font-display text-3xl md:text-[2.15rem] leading-tight mb-3">Selamat Datang</h1>
+              <p className="text-sm font-medium text-white/90 mb-3">
+                "Tepat Waktu Mengingatkan, 100% Patuh Regulasi!"
+              </p>
               <p className="text-sm text-teal-100/80 leading-relaxed max-w-sm">
-                SIMPEG adalah pusat data kepegawaian RSUD Giri Asih — arsip digital, pengingat masa
-                berlaku dokumen, dan layanan mandiri bagi setiap pegawai, dalam satu aplikasi.
+                SI-PATUH adalah sistem peringatan otomatis untuk kepatuhan regulasi ketenagakerjaan
+                RSUD Giri Asih — memastikan setiap izin praktik, penugasan klinis, dan kenaikan berkala
+                pegawai selalu terpantau sebelum jatuh tempo.
               </p>
             </div>
           </div>

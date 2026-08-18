@@ -1,8 +1,8 @@
-# SIMPEG — Sistem Informasi Kepegawaian RSUD Giri Asih
+# SI-PATUH — Sistem Peringatan Automatis Tenggat Urusan Hukum RSUD Giri Asih
 
 Aplikasi web kepegawaian berbasis **React + Firebase** (Auth, Firestore) +
 **Netlify** (Hosting, Functions) + **Cloudinary** (upload foto/dokumen),
-dibangun mengikuti Dokumen Kebutuhan Sistem SIMPEG RSUD Giri Asih.
+dibangun mengikuti Dokumen Kebutuhan Sistem SI-PATUH RSUD Giri Asih.
 
 > 📌 Stack ini sengaja disusun supaya **100% gratis tanpa perlu kartu kredit**
 > di mana pun. Untuk langkah setup & deploy lengkap, lihat **[SETUP.md](./SETUP.md)**.

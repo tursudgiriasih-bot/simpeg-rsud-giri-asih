@@ -26,7 +26,7 @@ export function subscribeSections(callback) {
   });
 }
 
-// Mengisi 14 bagian bawaan SIMPEG ke Firestore sekali saja (jika koleksinya masih kosong),
+// Mengisi 14 bagian bawaan SI-PATUH ke Firestore sekali saja (jika koleksinya masih kosong),
 // supaya aplikasi tetap berfungsi penuh sejak pertama kali dipakai tanpa Admin harus
 // membuat semuanya dari nol. Setelah ini, semuanya diedit lewat halaman Kelola Bagian Data.
 export async function seedDefaultSectionsIfEmpty() {

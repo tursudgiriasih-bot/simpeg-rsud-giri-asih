@@ -1,4 +1,4 @@
-# SIMPEG — Panduan Setup & Deploy (100% Gratis, Tanpa Kartu)
+# SI-PATUH — Panduan Setup & Deploy (100% Gratis, Tanpa Kartu)
 
 Dokumen ini menjelaskan apa yang berubah dari versi asli, dan langkah-langkah
 supaya aplikasi ini jalan penuh di Netlify tanpa perlu link kartu kredit ke mana pun.
