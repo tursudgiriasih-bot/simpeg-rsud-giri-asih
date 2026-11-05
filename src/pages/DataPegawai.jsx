@@ -6,11 +6,13 @@ import Layout from "../components/Layout";
 import Modal from "../components/Modal";
 import { initials } from "../utils/helpers";
 import { exportPegawaiExcel } from "../utils/exportExcel";
+import ProfesiSelect from "../components/ProfesiSelect";
+import { useProfesiList } from "../utils/profesi";
 
 const emptyForm = {
   nama: "", nip: "", nik: "", tempatLahir: "", tanggalLahir: "", jenisKelamin: "",
   agama: "", statusPerkawinan: "", alamat: "", noHp: "", email: "", pendidikan: "",
-  jabatan: "", unitKerja: "", pangkat: "", golongan: "", tmtCpns: "", tmtPns: "",
+  profesi: "", jabatan: "", unitKerja: "", pangkat: "", golongan: "", tmtCpns: "", tmtPns: "",
   statusPegawai: "PNS",
 };
 
@@ -19,6 +21,8 @@ export default function DataPegawai() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterUnit, setFilterUnit] = useState("");
+  const [filterProfesi, setFilterProfesi] = useState("");
+  const { list: profesiList } = useProfesiList();
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -39,13 +43,14 @@ export default function DataPegawai() {
     return list.filter((p) => {
       const matchSearch =
         !search ||
-        [p.nama, p.nip, p.jabatan, p.golongan, p.unitKerja]
+        [p.nama, p.nip, p.profesi, p.jabatan, p.golongan, p.unitKerja]
           .filter(Boolean)
           .some((v) => v.toLowerCase().includes(search.toLowerCase()));
       const matchUnit = !filterUnit || p.unitKerja === filterUnit;
-      return matchSearch && matchUnit;
+      const matchProfesi = !filterProfesi || p.profesi === filterProfesi;
+      return matchSearch && matchUnit && matchProfesi;
     });
-  }, [list, search, filterUnit]);
+  }, [list, search, filterUnit, filterProfesi]);
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -110,7 +115,7 @@ export default function DataPegawai() {
       <div className="flex gap-3 mb-4">
         <input
           type="text"
-          placeholder="Cari nama, NIP, jabatan, golongan…"
+          placeholder="Cari nama, NIP, profesi, jabatan, golongan…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
@@ -123,6 +128,16 @@ export default function DataPegawai() {
           <option value="">Semua Unit</option>
           {units.map((u) => (
             <option key={u} value={u}>{u}</option>
+          ))}
+        </select>
+        <select
+          value={filterProfesi}
+          onChange={(e) => setFilterProfesi(e.target.value)}
+          className="border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
+        >
+          <option value="">Semua Profesi</option>
+          {profesiList.map((n) => (
+            <option key={n} value={n}>{n}</option>
           ))}
         </select>
       </div>
@@ -138,6 +153,7 @@ export default function DataPegawai() {
               <tr className="bg-[color:var(--color-teal-100)]/50 text-left text-xs uppercase tracking-wide text-[color:var(--color-ink-500)]">
                 <th className="px-4 py-3 font-medium">Pegawai</th>
                 <th className="px-4 py-3 font-medium">NIP</th>
+                <th className="px-4 py-3 font-medium">Profesi</th>
                 <th className="px-4 py-3 font-medium">Jabatan</th>
                 <th className="px-4 py-3 font-medium">Unit</th>
                 <th className="px-4 py-3 font-medium">Golongan</th>
@@ -158,6 +174,7 @@ export default function DataPegawai() {
                     </div>
                   </td>
                   <td className="px-4 py-3 font-mono-data text-[color:var(--color-ink-700)]">{p.nip || "-"}</td>
+                  <td className="px-4 py-3 text-[color:var(--color-ink-700)]">{p.profesi || "-"}</td>
                   <td className="px-4 py-3 text-[color:var(--color-ink-700)]">{p.jabatan || "-"}</td>
                   <td className="px-4 py-3 text-[color:var(--color-ink-700)]">{p.unitKerja || "-"}</td>
                   <td className="px-4 py-3 font-mono-data text-[color:var(--color-ink-700)]">{p.golongan || "-"}</td>
@@ -191,6 +208,7 @@ export default function DataPegawai() {
             ["noHp", "Nomor HP", "text"],
             ["email", "Email", "email"],
             ["pendidikan", "Pendidikan Terakhir", "text"],
+            ["profesi", "Profesi", "select-profesi"],
             ["jabatan", "Jabatan", "text"],
             ["unitKerja", "Unit Kerja", "text"],
             ["pangkat", "Pangkat", "text"],
@@ -200,7 +218,13 @@ export default function DataPegawai() {
           ].map(([name, label, type]) => (
             <div key={name}>
               <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1">{label}</label>
-              {type === "select-gender" ? (
+              {type === "select-profesi" ? (
+                <ProfesiSelect
+                  value={form[name]}
+                  onChange={(v) => setForm({ ...form, [name]: v })}
+                  className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
+                />
+              ) : type === "select-gender" ? (
                 <select
                   value={form[name]}
                   onChange={(e) => setForm({ ...form, [name]: e.target.value })}

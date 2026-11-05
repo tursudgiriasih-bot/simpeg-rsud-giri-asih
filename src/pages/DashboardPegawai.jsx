@@ -68,7 +68,7 @@ export default function DashboardPegawai() {
       <div className="mb-6">
         <h1 className="font-display text-2xl text-[color:var(--color-ink-900)]">Selamat datang, {pegawai?.nama}</h1>
         <p className="text-sm text-[color:var(--color-ink-500)] mt-1">
-          {pegawai?.jabatan} · {pegawai?.unitKerja}
+          {[pegawai?.profesi, pegawai?.jabatan, pegawai?.unitKerja].filter(Boolean).join(" · ")}
         </p>
       </div>
 

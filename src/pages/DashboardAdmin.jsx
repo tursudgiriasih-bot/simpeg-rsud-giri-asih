@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from "recharts";
 import Layout from "../components/Layout";
 import StatCard from "../components/StatCard";
 import ReminderList from "../components/ReminderList";
 import { fetchDashboardData } from "../utils/queries";
 import { seedDefaultSectionsIfEmpty } from "../utils/sectionCatalog";
+import { tallyProfesi } from "../utils/profesi";
 
 // Ambang "akan berakhir" dashboard -- disamakan semua kategori jadi 180 hari
 // (lihat fetchDashboardData di utils/queries.js).
@@ -141,6 +142,8 @@ export default function DashboardAdmin() {
   const genderRows = useMemo(() => (data ? tallyGender(data.pegawaiList) : []), [data]);
   const statusRows = useMemo(() => (data ? tallyFixedOrder(data.pegawaiList, "statusPegawai", ["PNS", "PPPK", "BLUD"]) : []), [data]);
   const ageRows = useMemo(() => (data ? tallyAge(data.pegawaiList) : []), [data]);
+  const profesiRows = useMemo(() => (data ? tallyProfesi(data.pegawaiList) : []), [data]);
+  const profesiChart = useMemo(() => profesiRows.map(([name, value]) => ({ name, value })), [profesiRows]);
 
   const complianceData = useMemo(() => {
     if (!data) return [];
@@ -172,6 +175,31 @@ export default function DashboardAdmin() {
         <BreakdownCard title="Jenis Kelamin" rows={genderRows} />
         <BreakdownCard title="Status Kepegawaian" rows={statusRows} />
         <BreakdownCard title="Rentang Usia" rows={ageRows} />
+      </div>
+
+      {/* Jumlah pegawai per profesi -- daftar profesi dikelola Admin lewat menu Kelola Profesi */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div className="card p-5 lg:col-span-2">
+          <div className="font-medium text-[color:var(--color-ink-900)]">Pegawai per Profesi</div>
+          <div className="text-xs text-[color:var(--color-ink-500)] mb-4">
+            Jumlah pegawai berdasarkan profesi yang dipilih di data pegawai
+          </div>
+          {profesiChart.length === 0 ? (
+            <div className="text-sm text-[color:var(--color-ink-500)]">Belum ada data pegawai.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={Math.max(160, profesiChart.length * 36)}>
+              <BarChart data={profesiChart} layout="vertical" margin={{ top: 0, right: 32, left: 0, bottom: 0 }}>
+                <XAxis type="number" allowDecimals={false} tick={CHART_TICK} />
+                <YAxis type="category" dataKey="name" width={130} tick={CHART_TICK} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Bar dataKey="value" name="Jumlah pegawai" fill="var(--color-teal-700)" radius={[0, 4, 4, 0]}>
+                  <LabelList dataKey="value" position="right" style={{ fontSize: 12, fill: "var(--color-ink-700)" }} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+        <BreakdownCard title="Rincian per Profesi" rows={profesiRows} />
       </div>
 
       {/* Grafik ringkasan kepatuhan dokumen -- jumlah per kategori

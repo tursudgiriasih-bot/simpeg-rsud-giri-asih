@@ -6,6 +6,7 @@ import { uploadToCloudinary } from "../utils/cloudinary";
 import Layout from "../components/Layout";
 import Modal from "../components/Modal";
 import SectionRecords from "../components/SectionRecords";
+import ProfesiSelect from "../components/ProfesiSelect";
 import { subscribeSections } from "../utils/sectionCatalog";
 import { formatDate, toDateInputValue, initials, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB, formatFileSize } from "../utils/helpers";
 import { useAuth } from "../context/AuthContext";
@@ -15,7 +16,7 @@ import { useAuth } from "../context/AuthContext";
 // firestore.rules -- tapi field yang boleh diisi sama seperti Admin).
 const IDENTITY_EDITABLE_FIELDS = [
   "nama", "nip", "nik", "tempatLahir", "tanggalLahir", "jenisKelamin", "agama",
-  "statusPerkawinan", "alamat", "noHp", "email", "pendidikan", "jabatan",
+  "statusPerkawinan", "alamat", "noHp", "email", "pendidikan", "profesi", "jabatan",
   "unitKerja", "pangkat", "golongan", "tmtCpns", "tmtPns", "statusPegawai",
 ];
 
@@ -25,7 +26,7 @@ const IDENTITY_FIELD_LABELS = {
   nama: "Nama Lengkap", nip: "NIP", nik: "NIK", tempatLahir: "Tempat Lahir",
   tanggalLahir: "Tanggal Lahir", jenisKelamin: "Jenis Kelamin", agama: "Agama",
   statusPerkawinan: "Status Perkawinan", alamat: "Alamat", noHp: "No HP", email: "Email",
-  pendidikan: "Pendidikan", jabatan: "Jabatan", unitKerja: "Unit Kerja",
+  pendidikan: "Pendidikan", profesi: "Profesi", jabatan: "Jabatan", unitKerja: "Unit Kerja",
   pangkat: "Pangkat", golongan: "Golongan", tmtCpns: "TMT CPNS", tmtPns: "TMT PNS",
   statusPegawai: "Status Pegawai",
 };
@@ -248,12 +249,19 @@ export default function ProfilPegawai() {
             <form onSubmit={saveIdentity} className="grid grid-cols-2 gap-4">
               {Object.keys(identityForm).map((key) => {
                 const isDate = ["tanggalLahir", "tmtCpns", "tmtPns"].includes(key);
+                const isProfesi = key === "profesi";
                 const isGender = key === "jenisKelamin";
                 const isStatus = key === "statusPegawai";
                 return (
                   <div key={key}>
                     <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1">{IDENTITY_FIELD_LABELS[key] || key}</label>
-                    {isGender ? (
+                    {isProfesi ? (
+                      <ProfesiSelect
+                        value={identityForm[key] || ""}
+                        onChange={(v) => setIdentityForm({ ...identityForm, [key]: v })}
+                        className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"
+                      />
+                    ) : isGender ? (
                       <select
                         value={identityForm[key] || ""}
                         onChange={(e) => setIdentityForm({ ...identityForm, [key]: e.target.value })}
@@ -300,7 +308,7 @@ export default function ProfilPegawai() {
                 ["Tanggal Lahir", formatDate(pegawai.tanggalLahir)], ["Jenis Kelamin", pegawai.jenisKelamin],
                 ["Agama", pegawai.agama], ["Status Perkawinan", pegawai.statusPerkawinan],
                 ["Alamat", pegawai.alamat], ["No HP", pegawai.noHp], ["Email", pegawai.email],
-                ["Pendidikan", pegawai.pendidikan], ["Jabatan", pegawai.jabatan], ["Unit Kerja", pegawai.unitKerja],
+                ["Pendidikan", pegawai.pendidikan], ["Profesi", pegawai.profesi], ["Jabatan", pegawai.jabatan], ["Unit Kerja", pegawai.unitKerja],
                 ["Pangkat", pegawai.pangkat], ["Golongan", pegawai.golongan],
                 ["TMT CPNS", formatDate(pegawai.tmtCpns)], ["TMT PNS", formatDate(pegawai.tmtPns)],
                 ["Status Pegawai", pegawai.statusPegawai],

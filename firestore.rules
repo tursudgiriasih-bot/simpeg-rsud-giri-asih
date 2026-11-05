@@ -38,6 +38,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Pengaturan aplikasi (mis. daftar Profesi). Semua user login boleh membaca
+    // (untuk dropdown), hanya Admin yang boleh mengubah.
+    match /appSettings/{key} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     match /pegawai/{pegawaiId} {
       allow read: if isAdmin() || isOwner(pegawaiId);
       allow create, delete: if isAdmin();
@@ -45,7 +52,7 @@ service cloud.firestore {
         (isOwner(pegawaiId) &&
          request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly(['nama', 'nip', 'nik', 'tempatLahir', 'tanggalLahir', 'jenisKelamin', 'agama',
-                     'statusPerkawinan', 'alamat', 'noHp', 'email', 'pendidikan', 'jabatan',
+                     'statusPerkawinan', 'alamat', 'noHp', 'email', 'pendidikan', 'profesi', 'jabatan',
                      'unitKerja', 'pangkat', 'golongan', 'tmtCpns', 'tmtPns', 'statusPegawai',
                      'fotoUrl', 'updatedAt']));
 

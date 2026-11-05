@@ -9,6 +9,7 @@ const adminNav = [
   { to: "/masa-berlaku", label: "Cek Masa Berlaku", icon: "clock" },
   { to: "/verifikasi", label: "Verifikasi Pendaftaran", icon: "check" },
   { to: "/kelola-data", label: "Kelola Bagian Data", icon: "sliders" },
+  { to: "/kelola-profesi", label: "Kelola Profesi", icon: "tag" },
   { to: "/laporan", label: "Laporan", icon: "file" },
 ];
 
@@ -25,6 +26,7 @@ const icons = {
   check: "M5 13l4 4L19 7",
   sliders: "M4 6h16M8 6v4M4 12h16M14 12v4M4 18h16M10 18v-4",
   clock: "M12 8v4l3 3M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z",
+  tag: "M3 3h8.5L21 12.5 12.5 21 3 11.5V3Zm4.5 4.5h.01",
 };
 
 function Icon({ name, className = "w-5 h-5" }) {

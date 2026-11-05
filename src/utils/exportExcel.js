@@ -15,6 +15,7 @@ export function exportPegawaiExcel(list, filename = "data-pegawai.xlsx") {
     "No HP": p.noHp,
     Email: p.email,
     Pendidikan: p.pendidikan,
+    Profesi: p.profesi,
     Jabatan: p.jabatan,
     "Unit Kerja": p.unitKerja,
     Pangkat: p.pangkat,
