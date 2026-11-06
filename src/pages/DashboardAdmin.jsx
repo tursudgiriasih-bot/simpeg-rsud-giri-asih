@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList,
 import Layout from "../components/Layout";
 import StatCard from "../components/StatCard";
 import ReminderList from "../components/ReminderList";
+import DocStatusCard, { DocStatusModal } from "../components/DocStatusCard";
 import { fetchDashboardData } from "../utils/queries";
 import { seedDefaultSectionsIfEmpty } from "../utils/sectionCatalog";
 import { tallyProfesi } from "../utils/profesi";
@@ -109,11 +110,17 @@ function splitStatus(list) {
   };
 }
 
-function BreakdownCard({ title, rows }) {
+// rowsPerColumn: kalau diisi, daftar disusun ke samping (mis. 3 baris per kolom)
+// sehingga kartu dengan banyak baris tetap sama tinggi dengan kartu lain.
+function BreakdownCard({ title, rows, rowsPerColumn, className = "" }) {
+  const multiColumn = !!rowsPerColumn;
   return (
-    <div className="card p-5">
+    <div className={`card p-5 ${className}`}>
       <div className="text-xs uppercase tracking-wide text-[color:var(--color-ink-500)] mb-3">{title}</div>
-      <ul className="space-y-1.5">
+      <ul
+        className={multiColumn ? "grid grid-flow-col gap-x-8 gap-y-1.5" : "space-y-1.5"}
+        style={multiColumn ? { gridTemplateRows: `repeat(${rowsPerColumn}, auto)`, gridAutoColumns: "1fr" } : undefined}
+      >
         {rows.map(([label, value]) => (
           <li key={label} className="flex justify-between items-baseline text-sm">
             <span className="text-[color:var(--color-ink-700)]">{label}</span>
@@ -128,6 +135,7 @@ function BreakdownCard({ title, rows }) {
 export default function DashboardAdmin() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState(null); // { doc: "sip" | "spk", kind: "hijau" | "kuning" | "merah" }
 
   useEffect(() => {
     seedDefaultSectionsIfEmpty();
@@ -170,11 +178,11 @@ export default function DashboardAdmin() {
         <p className="text-sm text-[color:var(--color-ink-500)] mt-1">Ringkasan data kepegawaian secara real time.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <StatCard label="Total Pegawai" value={data.pegawaiList.length} />
         <BreakdownCard title="Jenis Kelamin" rows={genderRows} />
         <BreakdownCard title="Status Kepegawaian" rows={statusRows} />
-        <BreakdownCard title="Rentang Usia" rows={ageRows} />
+        <BreakdownCard title="Rentang Usia" rows={ageRows} rowsPerColumn={3} className="md:col-span-2" />
       </div>
 
       {/* Jumlah pegawai per profesi -- daftar profesi dikelola Admin lewat menu Kelola Profesi */}
@@ -199,7 +207,20 @@ export default function DashboardAdmin() {
             </ResponsiveContainer>
           )}
         </div>
-        <BreakdownCard title="Rincian per Profesi" rows={profesiRows} />
+        <div className="card p-5">
+          <div className="font-medium text-[color:var(--color-ink-900)]">Pegawai per Unit</div>
+          <div className="text-xs text-[color:var(--color-ink-500)] mb-4">Unit dengan pegawai terbanyak</div>
+          <ResponsiveContainer width="100%" height={Math.max(160, perUnit.slice(0, 6).length * 36)}>
+            <BarChart data={perUnit.slice(0, 6)} layout="vertical" margin={{ top: 0, right: 32, left: 0, bottom: 0 }}>
+              <XAxis type="number" allowDecimals={false} tick={CHART_TICK} />
+              <YAxis type="category" dataKey="name" width={90} tick={CHART_TICK} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+              <Bar dataKey="value" name="Jumlah pegawai" fill="var(--color-teal-700)" radius={[0, 4, 4, 0]}>
+                <LabelList dataKey="value" position="right" style={{ fontSize: 12, fill: "var(--color-ink-700)" }} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Grafik ringkasan kepatuhan dokumen -- jumlah per kategori
@@ -222,18 +243,7 @@ export default function DashboardAdmin() {
         </ResponsiveContainer>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <div className="card p-5">
-          <div className="font-medium text-[color:var(--color-ink-900)] mb-3">Pegawai per Unit</div>
-          <ResponsiveContainer width="100%" height={Math.max(120, perUnit.slice(0, 6).length * 34)}>
-            <BarChart data={perUnit.slice(0, 6)} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
-              <XAxis type="number" allowDecimals={false} tick={CHART_TICK} />
-              <YAxis type="category" dataKey="name" width={90} tick={CHART_TICK} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-              <Bar dataKey="value" fill="var(--color-teal-700)" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <div className="card p-5">
           <div className="font-medium text-[color:var(--color-ink-900)] mb-3">Pegawai per Golongan</div>
           <ResponsiveContainer width="100%" height={Math.max(120, perGolongan.slice(0, 6).length * 34)}>
@@ -259,8 +269,18 @@ export default function DashboardAdmin() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <ReminderList title="SIP akan berakhir" items={data.reminders.sip} threshold={THRESHOLD_DAYS} />
-        <ReminderList title="SPK akan berakhir" items={data.reminders.spk} threshold={THRESHOLD_DAYS} />
+        <DocStatusCard
+          title="Status SIP"
+          status={data.status.sip}
+          threshold={THRESHOLD_DAYS}
+          onSelect={(kind) => setDetail({ doc: "sip", kind })}
+        />
+        <DocStatusCard
+          title="Status SPK"
+          status={data.status.spk}
+          threshold={THRESHOLD_DAYS}
+          onSelect={(kind) => setDetail({ doc: "spk", kind })}
+        />
         <ReminderList title="Kenaikan Gaji Berkala" items={data.reminders.kgb} threshold={THRESHOLD_DAYS} />
         <ReminderList title="Kenaikan Pangkat/Golongan" items={data.reminders.pangkat} threshold={THRESHOLD_DAYS} />
       </div>
@@ -301,6 +321,13 @@ export default function DashboardAdmin() {
           )}
         </div>
       </div>
+
+      <DocStatusModal
+        docLabel={detail ? detail.doc.toUpperCase() : ""}
+        kind={detail?.kind}
+        items={detail ? data.status[detail.doc][detail.kind] : []}
+        onClose={() => setDetail(null)}
+      />
     </Layout>
   );
 }

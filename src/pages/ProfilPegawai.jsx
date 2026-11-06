@@ -227,20 +227,20 @@ export default function ProfilPegawai() {
 
       {tab === "identitas" ? (
         <div className="card p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-start justify-between mb-4">
             <h3 className="font-medium text-[color:var(--color-ink-900)]">Data Identitas</h3>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
+              {!editingIdentity && (
+                <button onClick={startEditIdentity} className="text-sm px-3 py-1.5 rounded-lg bg-[color:var(--color-teal-700)] text-white hover:bg-[color:var(--color-teal-900)]">
+                  Edit
+                </button>
+              )}
               {isAdmin && !editingIdentity && (
                 <button
                   onClick={() => { setResetResult(null); setResetModalOpen(true); }}
                   className="text-sm px-3 py-1.5 rounded-lg border border-[color:var(--color-teal-700)] text-[color:var(--color-teal-700)] hover:bg-[color:var(--color-teal-100)]"
                 >
                   Reset Password
-                </button>
-              )}
-              {!editingIdentity && (
-                <button onClick={startEditIdentity} className="text-sm px-3 py-1.5 rounded-lg bg-[color:var(--color-teal-700)] text-white hover:bg-[color:var(--color-teal-900)]">
-                  Edit
                 </button>
               )}
             </div>

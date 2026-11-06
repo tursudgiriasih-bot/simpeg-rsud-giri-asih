@@ -55,6 +55,21 @@ export async function fetchDashboardData() {
       .filter((it) => it._days !== null && it._days <= threshold)
       .sort((a, b) => a._days - b._days);
 
+  // Status masa berlaku SIP & SPK untuk kartu Dashboard: hijau (> 180 hari),
+  // kuning (0-180 hari lagi), merah (sudah berakhir). Berbeda dari `within`
+  // di atas, di sini dokumen yang masih lama berlakunya (hijau) ikut disertakan.
+  const classifyStatus = (items) => {
+    const withDays = items
+      .map((it) => ({ ...it, _days: daysUntil(it.date) }))
+      .filter((it) => it._days !== null)
+      .sort((a, b) => a._days - b._days);
+    return {
+      merah: withDays.filter((it) => it._days < 0),
+      kuning: withDays.filter((it) => it._days >= 0 && it._days <= 180),
+      hijau: withDays.filter((it) => it._days > 180),
+    };
+  };
+
   // CPD: pegawai dengan total JP tahun berjalan < 20
   const currentYear = new Date().getFullYear();
   const cpdByPegawai = {};
@@ -73,6 +88,7 @@ export async function fetchDashboardData() {
 
   return {
     pegawaiList,
+    status: { sip: classifyStatus(sip), spk: classifyStatus(spk) },
     // Semua kategori sekarang pakai ambang 180 hari yang sama (sebelumnya
     // SIP/SPK/KGB terpisah di 90 hari) -- setiap list ini sudah berisi
     // GABUNGAN dokumen yang sudah lewat tenggat (_days negatif) MAUPUN yang
