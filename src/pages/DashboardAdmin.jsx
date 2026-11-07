@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
-import StatCard from "../components/StatCard";
 import ReminderList from "../components/ReminderList";
 import DocStatusCard, { DocStatusModal } from "../components/DocStatusCard";
 import PercentBarChart from "../components/PercentBarChart";
@@ -102,17 +101,18 @@ function tallyAge(list) {
   return rows;
 }
 
-// Kartu grafik. `small` = judul kecil huruf kapital (baris kartu ringkasan atas).
+// Kartu grafik. `small` = kartu ringkasan di baris atas: judul kecil huruf
+// kapital, rata tengah, dan isinya (diagram) diletakkan di tengah kartu.
 function ChartCard({ title, subtitle, small = false, className = "", children }) {
   return (
-    <div className={`card p-5 ${className}`}>
+    <div className={`card p-5 flex flex-col ${className}`}>
       {small ? (
-        <div className="text-xs uppercase tracking-wide text-[color:var(--color-ink-500)] mb-2">{title}</div>
+        <div className="text-xs uppercase tracking-wide text-center text-[color:var(--color-ink-500)] mb-3">{title}</div>
       ) : (
         <div className="font-medium text-[color:var(--color-ink-900)]">{title}</div>
       )}
       {subtitle && <div className="text-xs text-[color:var(--color-ink-500)]">{subtitle}</div>}
-      <div className={small ? "" : "mt-3"}>{children}</div>
+      <div className={small ? "flex-1 flex flex-col items-center" : "mt-3"}>{children}</div>
     </div>
   );
 }
@@ -149,7 +149,7 @@ export default function DashboardAdmin() {
   }
 
   const genderUnfilled = total - genderRows.reduce((sum, [, n]) => sum + n, 0);
-  const chartHeight = (n) => Math.max(160, n * 34);
+  const chartHeight = (n) => Math.max(200, Math.min(300, n * 40));
 
   return (
     <Layout>
@@ -159,18 +159,21 @@ export default function DashboardAdmin() {
       </div>
 
       {/* Ringkasan: diagram lingkaran dengan jumlah dan persentase */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(110px,0.4fr)_1fr_1fr_1.2fr] gap-4 mb-4">
-        <StatCard label="Total Pegawai" value={total} />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(120px,0.4fr)_1fr_1fr_1fr] gap-4 mb-4">
+        <div className="card p-5 flex flex-col items-center justify-center text-center">
+          <div className="text-xs uppercase tracking-wide text-[color:var(--color-ink-500)] mb-2">Total Pegawai</div>
+          <div className="font-display text-5xl leading-none text-[color:var(--color-teal-900)]">{total}</div>
+        </div>
         <ChartCard small title="Jenis Kelamin">
-          <DonutChart rows={genderRows} />
+          <DonutChart rows={genderRows} colorByName={{ "Laki-laki": "#2563eb", Perempuan: "#ec4899" }} />
           {genderUnfilled > 0 && (
-            <div className="text-xs text-[color:var(--color-ink-500)] mt-3">
+            <div className="text-xs text-center text-[color:var(--color-ink-500)] mt-3">
               Persentase dari {total - genderUnfilled} pegawai yang sudah mengisi · {genderUnfilled} belum mengisi
             </div>
           )}
         </ChartCard>
         <ChartCard small title="Status Kepegawaian">
-          <DonutChart rows={statusRows} />
+          <DonutChart rows={statusRows} colorByName={{ PNS: "#059669", PPPK: "#f97316", BLUD: "#7c3aed" }} />
         </ChartCard>
         <ChartCard small title="Rentang Usia">
           <DonutChart rows={ageRows} />
