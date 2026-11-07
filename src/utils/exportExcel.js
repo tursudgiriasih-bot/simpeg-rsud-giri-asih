@@ -20,8 +20,8 @@ export function exportPegawaiExcel(list, filename = "data-pegawai.xlsx") {
     "Unit Kerja": p.unitKerja,
     Pangkat: p.pangkat,
     Golongan: p.golongan,
-    "TMT CPNS": formatDate(p.tmtCpns),
-    "TMT PNS": formatDate(p.tmtPns),
+    "TMT CPNS / CPPPK": formatDate(p.tmtCpns),
+    "TMT PNS / PPPK": formatDate(p.tmtPns),
     "Status Pegawai": p.statusPegawai,
   }));
   const ws = XLSX.utils.json_to_sheet(rows);

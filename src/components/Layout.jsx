@@ -9,7 +9,7 @@ const adminNav = [
   { to: "/masa-berlaku", label: "Cek Masa Berlaku", icon: "clock" },
   { to: "/verifikasi", label: "Verifikasi Pendaftaran", icon: "check" },
   { to: "/kelola-data", label: "Kelola Bagian Data", icon: "sliders" },
-  { to: "/kelola-profesi", label: "Kelola Profesi", icon: "tag" },
+  { to: "/kelola-pilihan", label: "Kelola Pilihan", icon: "tag" },
   { to: "/laporan", label: "Laporan", icon: "file" },
 ];
 
@@ -44,22 +44,22 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen flex bg-[color:var(--color-paper)]">
-      <aside className="w-64 shrink-0 bg-[color:var(--color-teal-900)] text-white flex flex-col">
-        <div className="px-6 py-6 border-b border-white/10 flex items-center gap-3">
+      <aside className="w-56 shrink-0 bg-[color:var(--color-teal-900)] text-white flex flex-col">
+        <div className="px-4 py-6 border-b border-white/10 flex items-center gap-3">
           <img src={logoRsud} alt="Logo RSUD Giri Asih" className="w-9 h-9 object-contain shrink-0" />
           <div>
             <div className="font-display text-xl tracking-tight leading-tight">SI-PATUH</div>
             <div className="text-[11px] text-teal-200/70">RSUD Giri Asih</div>
           </div>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-2 py-4 space-y-1">
           {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                `flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
                   isActive ? "bg-white/10 text-white" : "text-teal-200/80 hover:bg-white/5 hover:text-white"
                 }`
               }
@@ -69,13 +69,13 @@ export default function Layout({ children }) {
             </NavLink>
           ))}
         </nav>
-        <div className="px-3 py-4 border-t border-white/10">
-          <NavLink to="/ubah-password" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-teal-200/80 hover:bg-white/5 hover:text-white">
+        <div className="px-2 py-4 border-t border-white/10">
+          <NavLink to="/ubah-password" className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm text-teal-200/80 hover:bg-white/5 hover:text-white">
             Ubah Password
           </NavLink>
           <button
             onClick={async () => { await logout(); navigate("/login"); }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-teal-200/80 hover:bg-white/5 hover:text-white"
+            className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm text-teal-200/80 hover:bg-white/5 hover:text-white"
           >
             Keluar
           </button>
@@ -92,7 +92,7 @@ export default function Layout({ children }) {
             {initials(profile?.nama || profile?.email)}
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-5">{children}</main>
       </div>
     </div>
   );

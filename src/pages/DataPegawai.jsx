@@ -6,8 +6,8 @@ import Layout from "../components/Layout";
 import Modal from "../components/Modal";
 import { initials } from "../utils/helpers";
 import { exportPegawaiExcel } from "../utils/exportExcel";
-import ProfesiSelect from "../components/ProfesiSelect";
-import { useProfesiList } from "../utils/profesi";
+import OptionSelect from "../components/OptionSelect";
+import { useOptionList, isManagedField } from "../utils/optionLists";
 
 const emptyForm = {
   nama: "", nip: "", nik: "", tempatLahir: "", tanggalLahir: "", jenisKelamin: "",
@@ -22,7 +22,7 @@ export default function DataPegawai() {
   const [search, setSearch] = useState("");
   const [filterUnit, setFilterUnit] = useState("");
   const [filterProfesi, setFilterProfesi] = useState("");
-  const { list: profesiList } = useProfesiList();
+  const { list: profesiList } = useOptionList("profesi");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -202,24 +202,25 @@ export default function DataPegawai() {
             ["tempatLahir", "Tempat Lahir", "text"],
             ["tanggalLahir", "Tanggal Lahir", "date"],
             ["jenisKelamin", "Jenis Kelamin", "select-gender"],
-            ["agama", "Agama", "text"],
-            ["statusPerkawinan", "Status Perkawinan", "text"],
+            ["agama", "Agama", "select-list"],
+            ["statusPerkawinan", "Status Perkawinan", "select-list"],
             ["statusPegawai", "Status Pegawai", "select-status"],
             ["noHp", "Nomor HP", "text"],
             ["email", "Email", "email"],
             ["pendidikan", "Pendidikan Terakhir", "text"],
-            ["profesi", "Profesi", "select-profesi"],
-            ["jabatan", "Jabatan", "text"],
-            ["unitKerja", "Unit Kerja", "text"],
+            ["profesi", "Profesi", "select-list"],
+            ["unitKerja", "Unit Kerja", "select-list"],
+            ["golongan", "Golongan", "select-list"],
             ["pangkat", "Pangkat", "text"],
-            ["golongan", "Golongan", "text"],
-            ["tmtCpns", "TMT CPNS", "date"],
-            ["tmtPns", "TMT PNS", "date"],
+            ["jabatan", "Jabatan", "text"],
+            ["tmtCpns", "TMT CPNS / CPPPK", "date"],
+            ["tmtPns", "TMT PNS / PPPK", "date"],
           ].map(([name, label, type]) => (
             <div key={name}>
               <label className="block text-xs font-medium text-[color:var(--color-ink-500)] mb-1">{label}</label>
-              {type === "select-profesi" ? (
-                <ProfesiSelect
+              {isManagedField(name) ? (
+                <OptionSelect
+                  listKey={name}
                   value={form[name]}
                   onChange={(v) => setForm({ ...form, [name]: v })}
                   className="w-full border border-[color:var(--color-teal-100)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-teal-500)]"

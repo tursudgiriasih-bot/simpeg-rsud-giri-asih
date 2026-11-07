@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from "recharts";
 import Layout from "../components/Layout";
 import StatCard from "../components/StatCard";
 import ReminderList from "../components/ReminderList";
 import DocStatusCard, { DocStatusModal } from "../components/DocStatusCard";
+import PercentBarChart from "../components/PercentBarChart";
 import { fetchDashboardData } from "../utils/queries";
 import { seedDefaultSectionsIfEmpty } from "../utils/sectionCatalog";
-import { tallyProfesi } from "../utils/profesi";
+import { tallyField } from "../utils/optionLists";
 
 // Ambang "akan berakhir" dashboard -- disamakan semua kategori jadi 180 hari
 // (lihat fetchDashboardData di utils/queries.js).
 const THRESHOLD_DAYS = 180;
 
 const AGE_BUCKETS = ["20-30", "31-40", "41-50", "51-60", "61-65"];
-const CHART_TICK = { fontSize: 12, fill: "var(--color-ink-500)" };
 
 function groupCount(list, key) {
   const map = {};
@@ -101,36 +100,22 @@ function tallyAge(list) {
   return rows;
 }
 
-// Memecah satu daftar reminder jadi jumlah "sudah expired" (_days < 0) dan
-// "akan berakhir" (_days >= 0, masih dalam ambang) untuk grafik kepatuhan.
-function splitStatus(list) {
-  return {
-    expired: list.filter((x) => x._days < 0).length,
-    upcoming: list.filter((x) => x._days >= 0).length,
-  };
-}
-
-// rowsPerColumn: kalau diisi, daftar disusun ke samping (mis. 3 baris per kolom)
-// sehingga kartu dengan banyak baris tetap sama tinggi dengan kartu lain.
-function BreakdownCard({ title, rows, rowsPerColumn, className = "" }) {
-  const multiColumn = !!rowsPerColumn;
+// Kartu grafik. `small` = judul kecil huruf kapital (baris kartu ringkasan atas).
+function ChartCard({ title, subtitle, small = false, className = "", children }) {
   return (
     <div className={`card p-5 ${className}`}>
-      <div className="text-xs uppercase tracking-wide text-[color:var(--color-ink-500)] mb-3">{title}</div>
-      <ul
-        className={multiColumn ? "grid grid-flow-col gap-x-8 gap-y-1.5" : "space-y-1.5"}
-        style={multiColumn ? { gridTemplateRows: `repeat(${rowsPerColumn}, auto)`, gridAutoColumns: "1fr" } : undefined}
-      >
-        {rows.map(([label, value]) => (
-          <li key={label} className="flex justify-between items-baseline text-sm">
-            <span className="text-[color:var(--color-ink-700)]">{label}</span>
-            <span className="font-mono-data font-semibold text-[color:var(--color-teal-900)]">{value}</span>
-          </li>
-        ))}
-      </ul>
+      {small ? (
+        <div className="text-xs uppercase tracking-wide text-[color:var(--color-ink-500)] mb-2">{title}</div>
+      ) : (
+        <div className="font-medium text-[color:var(--color-ink-900)]">{title}</div>
+      )}
+      {subtitle && <div className="text-xs text-[color:var(--color-ink-500)]">{subtitle}</div>}
+      <div className={small ? "" : "mt-3"}>{children}</div>
     </div>
   );
 }
+
+const TOP_N = 8; // jumlah baris terbanyak yang ditampilkan di grafik unit/golongan/jabatan
 
 export default function DashboardAdmin() {
   const [data, setData] = useState(null);
@@ -144,24 +129,14 @@ export default function DashboardAdmin() {
       .finally(() => setLoading(false));
   }, []);
 
+  const total = data ? data.pegawaiList.length : 0;
   const perUnit = useMemo(() => (data ? groupCount(data.pegawaiList, "unitKerja") : []), [data]);
   const perGolongan = useMemo(() => (data ? groupCount(data.pegawaiList, "golongan") : []), [data]);
   const perJabatan = useMemo(() => (data ? groupCount(data.pegawaiList, "jabatan") : []), [data]);
   const genderRows = useMemo(() => (data ? tallyGender(data.pegawaiList) : []), [data]);
   const statusRows = useMemo(() => (data ? tallyFixedOrder(data.pegawaiList, "statusPegawai", ["PNS", "PPPK", "BLUD"]) : []), [data]);
   const ageRows = useMemo(() => (data ? tallyAge(data.pegawaiList) : []), [data]);
-  const profesiRows = useMemo(() => (data ? tallyProfesi(data.pegawaiList) : []), [data]);
-  const profesiChart = useMemo(() => profesiRows.map(([name, value]) => ({ name, value })), [profesiRows]);
-
-  const complianceData = useMemo(() => {
-    if (!data) return [];
-    return [
-      { name: "SIP", ...splitStatus(data.reminders.sip) },
-      { name: "SPK", ...splitStatus(data.reminders.spk) },
-      { name: "KGB", ...splitStatus(data.reminders.kgb) },
-      { name: "Kenaikan Pangkat", ...splitStatus(data.reminders.pangkat) },
-    ];
-  }, [data]);
+  const profesiRows = useMemo(() => (data ? tallyField(data.pegawaiList, "profesi") : []), [data]);
 
   if (loading) {
     return (
@@ -171,101 +146,51 @@ export default function DashboardAdmin() {
     );
   }
 
+  const genderUnfilled = total - genderRows.reduce((sum, [, n]) => sum + n, 0);
+  const chartHeight = (n) => Math.max(160, n * 34);
+
   return (
     <Layout>
-      <div className="mb-6">
+      <div className="mb-5">
         <h1 className="font-display text-2xl text-[color:var(--color-ink-900)]">Dashboard</h1>
         <p className="text-sm text-[color:var(--color-ink-500)] mt-1">Ringkasan data kepegawaian secara real time.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <StatCard label="Total Pegawai" value={data.pegawaiList.length} />
-        <BreakdownCard title="Jenis Kelamin" rows={genderRows} />
-        <BreakdownCard title="Status Kepegawaian" rows={statusRows} />
-        <BreakdownCard title="Rentang Usia" rows={ageRows} rowsPerColumn={3} className="md:col-span-2" />
-      </div>
-
-      {/* Jumlah pegawai per profesi -- daftar profesi dikelola Admin lewat menu Kelola Profesi */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <div className="card p-5 lg:col-span-2">
-          <div className="font-medium text-[color:var(--color-ink-900)]">Pegawai per Profesi</div>
-          <div className="text-xs text-[color:var(--color-ink-500)] mb-4">
-            Jumlah pegawai berdasarkan profesi yang dipilih di data pegawai
-          </div>
-          {profesiChart.length === 0 ? (
-            <div className="text-sm text-[color:var(--color-ink-500)]">Belum ada data pegawai.</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={Math.max(160, profesiChart.length * 36)}>
-              <BarChart data={profesiChart} layout="vertical" margin={{ top: 0, right: 32, left: 0, bottom: 0 }}>
-                <XAxis type="number" allowDecimals={false} tick={CHART_TICK} />
-                <YAxis type="category" dataKey="name" width={130} tick={CHART_TICK} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                <Bar dataKey="value" name="Jumlah pegawai" fill="var(--color-teal-700)" radius={[0, 4, 4, 0]}>
-                  <LabelList dataKey="value" position="right" style={{ fontSize: 12, fill: "var(--color-ink-700)" }} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+      {/* Ringkasan: jumlah dan persentase dari total pegawai */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(130px,0.5fr)_1fr_1fr_1.3fr] gap-4 mb-4">
+        <StatCard label="Total Pegawai" value={total} />
+        <ChartCard small title="Jenis Kelamin">
+          <PercentBarChart rows={genderRows} total={total} height={150} yWidth={72} />
+          {genderUnfilled > 0 && (
+            <div className="text-xs text-[color:var(--color-ink-500)]">{genderUnfilled} pegawai belum mengisi jenis kelamin</div>
           )}
-        </div>
-        <div className="card p-5">
-          <div className="font-medium text-[color:var(--color-ink-900)]">Pegawai per Unit</div>
-          <div className="text-xs text-[color:var(--color-ink-500)] mb-4">Unit dengan pegawai terbanyak</div>
-          <ResponsiveContainer width="100%" height={Math.max(160, perUnit.slice(0, 6).length * 36)}>
-            <BarChart data={perUnit.slice(0, 6)} layout="vertical" margin={{ top: 0, right: 32, left: 0, bottom: 0 }}>
-              <XAxis type="number" allowDecimals={false} tick={CHART_TICK} />
-              <YAxis type="category" dataKey="name" width={90} tick={CHART_TICK} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-              <Bar dataKey="value" name="Jumlah pegawai" fill="var(--color-teal-700)" radius={[0, 4, 4, 0]}>
-                <LabelList dataKey="value" position="right" style={{ fontSize: 12, fill: "var(--color-ink-700)" }} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        </ChartCard>
+        <ChartCard small title="Status Kepegawaian">
+          <PercentBarChart rows={statusRows} total={total} height={150} yWidth={72} />
+        </ChartCard>
+        <ChartCard small title="Rentang Usia">
+          <PercentBarChart rows={ageRows} total={total} height={150} yWidth={72} />
+        </ChartCard>
       </div>
 
-      {/* Grafik ringkasan kepatuhan dokumen -- jumlah per kategori
-          (SIP/SPK/KGB/Kenaikan Pangkat), dipisah expired vs akan berakhir */}
-      <div className="card p-5 mb-6">
-        <div className="font-medium text-[color:var(--color-ink-900)]">Ringkasan Kepatuhan Dokumen</div>
-        <div className="text-xs text-[color:var(--color-ink-500)] mb-4">
-          Jumlah dokumen yang sudah kedaluwarsa dibanding yang akan berakhir dalam {THRESHOLD_DAYS} hari, per kategori
-        </div>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={complianceData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-teal-100)" />
-            <XAxis dataKey="name" tick={CHART_TICK} />
-            <YAxis allowDecimals={false} tick={CHART_TICK} />
-            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="expired" name="Sudah Expired" fill="var(--color-red-500)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="upcoming" name={`Akan Berakhir (\u2264${THRESHOLD_DAYS}h)`} fill="var(--color-amber-500)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="card p-5">
-          <div className="font-medium text-[color:var(--color-ink-900)] mb-3">Pegawai per Golongan</div>
-          <ResponsiveContainer width="100%" height={Math.max(120, perGolongan.slice(0, 6).length * 34)}>
-            <BarChart data={perGolongan.slice(0, 6)} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
-              <XAxis type="number" allowDecimals={false} tick={CHART_TICK} />
-              <YAxis type="category" dataKey="name" width={90} tick={CHART_TICK} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-              <Bar dataKey="value" fill="var(--color-teal-700)" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="card p-5">
-          <div className="font-medium text-[color:var(--color-ink-900)] mb-3">Pegawai per Jabatan</div>
-          <ResponsiveContainer width="100%" height={Math.max(120, perJabatan.slice(0, 6).length * 34)}>
-            <BarChart data={perJabatan.slice(0, 6)} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
-              <XAxis type="number" allowDecimals={false} tick={CHART_TICK} />
-              <YAxis type="category" dataKey="name" width={90} tick={CHART_TICK} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-              <Bar dataKey="value" fill="var(--color-teal-700)" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      {/* Profesi (daftar dikelola Admin di menu Kelola Pilihan), lalu unit, golongan, jabatan */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 min-[1700px]:grid-cols-5 gap-4 mb-6">
+        <ChartCard
+          title="Pegawai per Profesi"
+          subtitle="Jumlah dan persentase dari total pegawai"
+          className="lg:col-span-3 min-[1700px]:col-span-2"
+        >
+          <PercentBarChart rows={profesiRows} total={total} height={chartHeight(profesiRows.length)} yWidth={130} />
+        </ChartCard>
+        <ChartCard title="Pegawai per Unit" subtitle={`${TOP_N} unit terbanyak`}>
+          <PercentBarChart rows={perUnit.slice(0, TOP_N)} total={total} height={chartHeight(Math.min(perUnit.length, TOP_N))} yWidth={100} />
+        </ChartCard>
+        <ChartCard title="Pegawai per Golongan" subtitle={`${TOP_N} golongan terbanyak`}>
+          <PercentBarChart rows={perGolongan.slice(0, TOP_N)} total={total} height={chartHeight(Math.min(perGolongan.length, TOP_N))} yWidth={90} />
+        </ChartCard>
+        <ChartCard title="Pegawai per Jabatan" subtitle={`${TOP_N} jabatan terbanyak`}>
+          <PercentBarChart rows={perJabatan.slice(0, TOP_N)} total={total} height={chartHeight(Math.min(perJabatan.length, TOP_N))} yWidth={110} />
+        </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">

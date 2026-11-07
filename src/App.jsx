@@ -13,7 +13,7 @@ import UbahPassword from "./pages/UbahPassword";
 import VerifikasiPendaftaran from "./pages/VerifikasiPendaftaran";
 import KelolaBagianData from "./pages/KelolaBagianData";
 import CekMasaBerlaku from "./pages/CekMasaBerlaku";
-import KelolaProfesi from "./pages/KelolaProfesi";
+import KelolaPilihan from "./pages/KelolaPilihan";
 
 function HomeRoute() {
   const { profile, isAdmin } = useAuth();
@@ -39,7 +39,7 @@ function AppRoutes() {
       <Route path="/laporan" element={<ProtectedRoute adminOnly><Laporan /></ProtectedRoute>} />
       <Route path="/verifikasi" element={<ProtectedRoute adminOnly><VerifikasiPendaftaran /></ProtectedRoute>} />
       <Route path="/kelola-data" element={<ProtectedRoute adminOnly><KelolaBagianData /></ProtectedRoute>} />
-      <Route path="/kelola-profesi" element={<ProtectedRoute adminOnly><KelolaProfesi /></ProtectedRoute>} />
+      <Route path="/kelola-pilihan" element={<ProtectedRoute adminOnly><KelolaPilihan /></ProtectedRoute>} />
       <Route path="/masa-berlaku" element={<ProtectedRoute adminOnly><CekMasaBerlaku /></ProtectedRoute>} />
       <Route path="/ubah-password" element={<ProtectedRoute><UbahPassword /></ProtectedRoute>} />
     </Routes>
