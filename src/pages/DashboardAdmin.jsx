@@ -5,6 +5,8 @@ import StatCard from "../components/StatCard";
 import ReminderList from "../components/ReminderList";
 import DocStatusCard, { DocStatusModal } from "../components/DocStatusCard";
 import PercentBarChart from "../components/PercentBarChart";
+import PercentColumnChart from "../components/PercentColumnChart";
+import DonutChart from "../components/DonutChart";
 import { fetchDashboardData } from "../utils/queries";
 import { seedDefaultSectionsIfEmpty } from "../utils/sectionCatalog";
 import { tallyField } from "../utils/optionLists";
@@ -156,20 +158,22 @@ export default function DashboardAdmin() {
         <p className="text-sm text-[color:var(--color-ink-500)] mt-1">Ringkasan data kepegawaian secara real time.</p>
       </div>
 
-      {/* Ringkasan: jumlah dan persentase dari total pegawai */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(130px,0.5fr)_1fr_1fr_1.3fr] gap-4 mb-4">
+      {/* Ringkasan: diagram lingkaran dengan jumlah dan persentase */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(110px,0.4fr)_1fr_1fr_1.2fr] gap-4 mb-4">
         <StatCard label="Total Pegawai" value={total} />
         <ChartCard small title="Jenis Kelamin">
-          <PercentBarChart rows={genderRows} total={total} height={150} yWidth={72} />
+          <DonutChart rows={genderRows} />
           {genderUnfilled > 0 && (
-            <div className="text-xs text-[color:var(--color-ink-500)]">{genderUnfilled} pegawai belum mengisi jenis kelamin</div>
+            <div className="text-xs text-[color:var(--color-ink-500)] mt-3">
+              Persentase dari {total - genderUnfilled} pegawai yang sudah mengisi · {genderUnfilled} belum mengisi
+            </div>
           )}
         </ChartCard>
         <ChartCard small title="Status Kepegawaian">
-          <PercentBarChart rows={statusRows} total={total} height={150} yWidth={72} />
+          <DonutChart rows={statusRows} />
         </ChartCard>
         <ChartCard small title="Rentang Usia">
-          <PercentBarChart rows={ageRows} total={total} height={150} yWidth={72} />
+          <DonutChart rows={ageRows} />
         </ChartCard>
       </div>
 
@@ -180,7 +184,7 @@ export default function DashboardAdmin() {
           subtitle="Jumlah dan persentase dari total pegawai"
           className="lg:col-span-3 min-[1700px]:col-span-2"
         >
-          <PercentBarChart rows={profesiRows} total={total} height={chartHeight(profesiRows.length)} yWidth={130} />
+          <PercentColumnChart rows={profesiRows} total={total} height={300} />
         </ChartCard>
         <ChartCard title="Pegawai per Unit" subtitle={`${TOP_N} unit terbanyak`}>
           <PercentBarChart rows={perUnit.slice(0, TOP_N)} total={total} height={chartHeight(Math.min(perUnit.length, TOP_N))} yWidth={100} />
