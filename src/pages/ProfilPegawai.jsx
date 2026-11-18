@@ -32,11 +32,26 @@ const IDENTITY_FIELD_LABELS = {
   statusPegawai: "Status Pegawai",
 };
 
+// Password sementara 10 karakter yang SELALU berisi huruf besar, huruf kecil,
+// dan angka (supaya lolos aturan keamanan password), tanpa karakter yang mudah
+// tertukar seperti 0/O dan 1/l/I.
 function generateTempPassword() {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-  let out = "";
-  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
+  const upper = "ABCDEFGHJKMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnpqrstuvwxyz";
+  const digit = "23456789";
+  const all = upper + lower + digit;
+  const rand = (n) => {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return buf[0] % n;
+  };
+  const chars = [upper[rand(upper.length)], lower[rand(lower.length)], digit[rand(digit.length)]];
+  while (chars.length < 10) chars.push(all[rand(all.length)]);
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = rand(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
 }
 
 export default function ProfilPegawai() {
@@ -163,7 +178,11 @@ export default function ProfilPegawai() {
         body: JSON.stringify({ pegawaiId: id, newPassword }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Gagal mereset password. Coba lagi.");
+      if (!res.ok) {
+        const base = data.error || `Gagal mereset password (kode HTTP ${res.status}).`;
+        const extra = [data.code, data.detail].filter(Boolean).join(" — ");
+        throw new Error(extra ? `${base} [${extra}]` : base);
+      }
       setResetResult({ password: newPassword });
     } catch (err) {
       setResetResult({ error: err.message || "Gagal mereset password. Coba lagi." });
