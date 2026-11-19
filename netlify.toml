@@ -4,7 +4,7 @@
   functions = "netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
 
 # React Router butuh semua path di-serve lewat index.html (client-side routing).
 # Ini tidak akan "menyerobot" panggilan ke Netlify Function -- Netlify selalu

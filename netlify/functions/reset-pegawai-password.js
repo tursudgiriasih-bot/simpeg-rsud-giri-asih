@@ -2,9 +2,10 @@
 // BUKAN "import admin from 'firebase-admin'" (namespace/default export).
 // Cara lama itu diketahui bermasalah di banyak environment ESM/bundler
 // (termasuk Netlify Functions).
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+// Modul-modul itu dimuat saat fungsi dipanggil (import dinamis di getServices),
+// bukan di baris paling atas file, supaya kalau ada library yang gagal dimuat
+// hasilnya tetap berupa pesan error yang jelas -- bukan halaman "function has
+// crashed" dari Netlify.
 
 // Pengganti Firebase Cloud Function (functions/index.js -> resetPegawaiPassword),
 // dipindah ke Netlify Function supaya tidak perlu upgrade Firebase ke Blaze plan.
@@ -31,7 +32,7 @@ function json(status, body) {
 // kalau konfigurasi salah, hasilnya tetap berupa pesan error yang jelas ke
 // layar -- bukan halaman error kosong dari Netlify.
 let services = null;
-function getServices() {
+async function getServices() {
   if (services) return services;
   const { FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY } = process.env;
   if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
@@ -39,6 +40,11 @@ function getServices() {
     err.code = "config/missing-env";
     throw err;
   }
+  const [{ initializeApp, cert, getApps }, { getAuth }, { getFirestore }] = await Promise.all([
+    import("firebase-admin/app"),
+    import("firebase-admin/auth"),
+    import("firebase-admin/firestore"),
+  ]);
   if (!getApps().length) {
     initializeApp({
       credential: cert({
@@ -59,6 +65,9 @@ function explain(err) {
   if (code === "config/missing-env") {
     return [500, "Konfigurasi server belum lengkap: variabel Firebase di Netlify belum diisi."];
   }
+  if (code === "ERR_MODULE_NOT_FOUND" || /Cannot find (module|package)/i.test(text)) {
+    return [500, "Library server (firebase-admin) belum terpasang lengkap di Netlify. Lakukan deploy ulang dan pastikan proses build berhasil."];
+  }
   if (code === "auth/user-not-found") {
     return [404, "Akun login pegawai ini tidak ditemukan di Firebase Authentication (mungkin sudah terhapus). Hapus lalu daftarkan ulang pegawai ini."];
   }
@@ -77,7 +86,7 @@ export default async (req) => {
   }
 
   try {
-    const { auth, db } = getServices();
+    const { auth, db } = await getServices();
 
     const authHeader = req.headers.get("authorization") || "";
     const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;

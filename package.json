@@ -10,9 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google-cloud/firestore": "8.7.1",
     "date-fns": "^4.4.0",
     "firebase": "^12.17.1",
-    "firebase-admin": "^14.2.0",
+    "firebase-admin": "14.3.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "react": "^19.2.8",
